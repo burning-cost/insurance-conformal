@@ -51,9 +51,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/burningcost/insurance-conformal"
-Repository = "https://github.com/burningcost/insurance-conformal"
-Issues = "https://github.com/burningcost/insurance-conformal/issues"
+Homepage = "https://github.com/burning-cost/insurance-conformal"
+Repository = "https://github.com/burning-cost/insurance-conformal"
+Issues = "https://github.com/burning-cost/insurance-conformal/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/insurance_conformal"]
