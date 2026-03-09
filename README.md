@@ -1,15 +1,20 @@
 # insurance-conformal
 [![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green) ![PyPI](https://img.shields.io/pypi/v/insurance-conformal)
+Distribution-free prediction intervals for insurance GBM and GLM pricing models. For pricing actuaries who need uncertainty quantification that doesn't rely on the model being correctly specified.
 
-Distribution-free prediction intervals for insurance GBM and GLM pricing models.
+---
 
 ## The problem
 
 Your Tweedie GBM gives point estimates. A pricing actuary needs to know the uncertainty around those estimates - not as a parametric confidence interval that depends on distributional assumptions, but as a guarantee: *this interval will contain the actual loss at least 90% of the time, for any data distribution*.
 
 Conformal prediction provides that guarantee. The catch is that the choice of non-conformity score determines interval width. Most conformal implementations use the raw absolute residual `|y - yhat|`. For insurance data, that is wrong: it treats a 1-unit error on a £100 risk identically to a 1-unit error on a £10,000 risk, producing intervals that are too wide on low-risk policies and too narrow on large risks.
+
+---
 
 ## The solution
 
@@ -20,6 +25,14 @@ score(y, yhat) = |y - yhat| / yhat^(p/2)
 ```
 
 This accounts for the inherent heteroscedasticity of insurance claims. The result: ~30% narrower intervals with identical coverage guarantees. Based on Manna et al. (2025) and [arXiv 2507.06921](https://arxiv.org/abs/2507.06921).
+
+---
+
+## Blog post
+
+[Conformal Prediction Intervals for Insurance Pricing Models](https://burning-cost.github.io/2026/03/06/conformal-prediction-intervals-for-insurance-pricing/)
+
+---
 
 ## Installation
 
@@ -32,6 +45,8 @@ uv add "insurance-conformal[catboost]"
 # With plotting:
 uv add "insurance-conformal[all]"
 ```
+
+---
 
 ## Quick start
 
@@ -71,6 +86,8 @@ print(intervals.head())
 # 2    0.1820  1.2742   4.9621
 ```
 
+---
+
 ## Coverage diagnostics
 
 The marginal coverage guarantee means `P(y in interval) >= 1 - alpha` averaged over all observations. In insurance, you also need to check that coverage is uniform across risk deciles - a model can achieve 90% overall while only covering 65% of high-risk policies.
@@ -96,6 +113,8 @@ fig.savefig("coverage_by_decile.png", dpi=150)
 fig = cp.interval_width_distribution(X_test, alpha=0.10)
 ```
 
+---
+
 ## Non-conformity scores
 
 | Score | Formula | When to use |
@@ -108,6 +127,8 @@ fig = cp.interval_width_distribution(X_test, alpha=0.10)
 
 The score hierarchy for interval width (narrowest first, coverage identical):
 `pearson_weighted >= deviance >= anscombe > pearson > raw`
+
+---
 
 ## Temporal calibration
 
@@ -127,6 +148,10 @@ model.fit(X_train, y_train)
 cp.calibrate(X_cal, y_cal)
 ```
 
+Use [insurance-cv](https://github.com/burning-cost/insurance-cv) if you need full walk-forward cross-validation respecting IBNR development structure.
+
+---
+
 ## Coverage guarantee
 
 Split conformal prediction provides the following guarantee for exchangeable data:
@@ -139,6 +164,8 @@ This is distribution-free - it holds regardless of the true data distribution, m
 
 "Exchangeable" roughly means "drawn from the same distribution in the same order". For insurance, this means you should not calibrate on year 5 and test on year 1. Use temporal splits.
 
+---
+
 ## Design choices
 
 **Split conformal, not cross-conformal.** Cross-conformal is more statistically efficient but requires refitting the model on each calibration fold. For GBMs that take hours to train, this is not practical. Split conformal trains once, calibrates once.
@@ -148,6 +175,8 @@ This is distribution-free - it holds regardless of the true data distribution, m
 **Lower bound clipped at 0.** Insurance losses are non-negative. Prediction intervals with negative lower bounds are nonsensical. We clip at 0 unconditionally.
 
 **Auto-detection of Tweedie power.** For CatBoost, the power parameter is read from the loss function string. For sklearn `TweedieRegressor`, from `model.power`. If detection fails, we warn and default to p=1.5. Pass `tweedie_power=` explicitly if you know the correct value.
+
+---
 
 ## References
 
@@ -173,6 +202,7 @@ This is distribution-free - it holds regardless of the true data distribution, m
 |---------|-------------|
 | [bayesian-pricing](https://github.com/burning-cost/bayesian-pricing) | Hierarchical Bayesian models for thin-data segments |
 | [credibility](https://github.com/burning-cost/credibility) | Bühlmann-Straub credibility weighting |
+| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Full conditional distribution per risk: mean, variance, CoV |
 
 **Deployment and optimisation**
 
@@ -195,11 +225,11 @@ This is distribution-free - it holds regardless of the true data distribution, m
 |---------|-------------|
 | [insurance-spatial](https://github.com/burning-cost/insurance-spatial) | BYM2 spatial territory ratemaking for UK personal lines |
 
-[All libraries →](https://burning-cost.github.io)
+[All libraries](https://burning-cost.github.io)
 
 ---
 
-## License
+## Licence
 
 MIT. See [LICENSE](LICENSE).
 
