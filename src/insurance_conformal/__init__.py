@@ -88,4 +88,4 @@ __all__ = [
     "width_efficiency_comparison",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
