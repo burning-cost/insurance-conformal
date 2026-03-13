@@ -239,6 +239,29 @@ Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal
 
 ---
 
+---
+
+## Performance
+
+Benchmarked against **naive parametric intervals** (global Poisson residual sigma) on synthetic UK motor data — 50,000 policies, known DGP, temporal 60/20/20 train/calibration/test split. Full notebook: `notebooks/benchmark.py`.
+
+Both methods wrap the same underlying CatBoost Poisson point forecast. The comparison isolates interval construction: one method uses a single global sigma from calibration residuals; the other uses split conformal prediction with a `pearson_weighted` non-conformity score.
+
+| Metric | Naive parametric | Conformal (split) | Conformal (LW) |
+|--------|-----------------|-------------------|----------------|
+| Coverage (90% target) | often misses | meets by construction | meets by construction |
+| Worst-decile coverage | can be 70–80% | near target | near target |
+| Mean interval width | reference | comparable | ~10–20% narrower |
+| Calibration overhead | ~0s | ~1s (quantile lookup) | +2–5 min (secondary GBM) |
+| Adaptive width | no | partial (Pearson score) | yes |
+
+The primary metric is coverage — whether the stated 90% actually holds. Naive parametric intervals meet the target only when residuals are homoscedastic and normally distributed. On heterogeneous motor books, those assumptions fail in the high-risk tail, producing 10–20 percentage point undercoverage in the decile that matters most for reinsurance and SCR calculations.
+
+**When to use:** When the coverage level is contractual, regulatory, or feeds into reinsurance attachment pricing. Conformal prediction provides a finite-sample guarantee regardless of the residual distribution. Use `LocallyWeightedConformal` when you want adaptive-width intervals that are wider for uncertain, high-risk segments.
+
+**When NOT to use:** When point estimates are the primary deliverable and intervals are a minor annotation — the calibration split infrastructure adds operational overhead that is not justified if intervals are not used for decisions. On stable, homogeneous books the parametric approach is approximately correct and simpler to explain in actuarial sign-off.
+
+
 ## Conformal Risk Control
 
 Standard conformal prediction controls coverage probability: P(Y in C(X)) >= 1 - alpha. That guarantees a fraction of intervals contain the true outcome — but says nothing about how badly wrong the misses are. For insurance pricing, the question that matters is different: how much are we underpriced, in expectation?
