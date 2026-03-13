@@ -22,8 +22,21 @@ v0.3.0 adds:
   See insurance_conformal.risk for PremiumSufficiencyController,
   IntervalWidthController, SelectiveRiskController, and supporting loss functions.
 
-Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921, and
-Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814).
+v0.4.0 adds:
+- insurance_conformal.claims subpackage: Conformal prediction for claims regression.
+  Hong order-statistic shortcut (O(n log n) model-free full conformal), Tweedie
+  nonconformity scores, two-stage locally weighted conformal, and Solvency II SCR
+  reporting. See insurance_conformal.claims for HongConformal, HongTransformConformal,
+  TweedePearsonScore, TwoStageLWConformal, and SCRReport.
+- insurance_conformal.multivariate subpackage: Joint multi-output conformal prediction.
+  Simultaneous intervals for frequency/severity and other multi-output insurance models.
+  Implements Fan & Sesia (2025) LWC/GWC methods with insurance-specific additions.
+  See insurance_conformal.multivariate for JointConformalPredictor,
+  SolvencyCapitalEstimator, and supporting calibration/diagnostic tools.
+
+Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
+Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
+and Fan & Sesia (2025) arXiv:2512.15383.
 
 Example usage::
 
@@ -64,6 +77,26 @@ For conformal risk control (premium sufficiency)::
     psc.calibrate(y_cal, premium_cal)
     result = psc.predict(premium_new)
     # result["upper_bound"] = risk-controlled loading factor per policy
+
+For claims conformal prediction::
+
+    from insurance_conformal.claims import HongConformal, SCRReport
+
+    hc = HongConformal()
+    hc.fit(X_train, y_train)
+    intervals = hc.predict_interval(X_test, alpha=0.005)
+
+For joint frequency/severity conformal prediction::
+
+    from insurance_conformal.multivariate import JointConformalPredictor
+
+    predictor = JointConformalPredictor(
+        models={'frequency': freq_glm, 'severity': sev_gbm},
+        alpha=0.05,
+        method='lwc',
+    )
+    predictor.calibrate(X_cal, Y_cal)
+    joint_set = predictor.predict(X_test)
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -104,6 +137,8 @@ __all__ = [
     "subgroup_coverage",
     "width_efficiency_comparison",
     # v0.3: risk subpackage (import from insurance_conformal.risk)
+    # v0.4: claims subpackage (import from insurance_conformal.claims)
+    # v0.4: multivariate subpackage (import from insurance_conformal.multivariate)
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
