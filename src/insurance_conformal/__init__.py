@@ -15,7 +15,15 @@ v0.2.0 adds:
 - subgroup_coverage: coverage by arbitrary grouping variable
 - width_efficiency_comparison: compare multiple predictors on interval width
 
-Based on Manna et al. (2025), Hong (2025, 2026), and arXiv 2507.06921.
+v0.3.0 adds:
+- insurance_conformal.risk subpackage: Conformal Risk Control (CRC) for insurance.
+  Controls expected loss directly — E[L(C_lambda(X), Y)] <= alpha — rather than
+  just coverage probability. Lead use case: premium sufficiency control.
+  See insurance_conformal.risk for PremiumSufficiencyController,
+  IntervalWidthController, SelectiveRiskController, and supporting loss functions.
+
+Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921, and
+Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814).
 
 Example usage::
 
@@ -47,6 +55,15 @@ For SCR reporting::
     scr = SCRReport(predictor=cp)
     scr_bounds = scr.solvency_capital_requirement(X_test, alpha=0.005)
     print(scr.to_markdown())
+
+For conformal risk control (premium sufficiency)::
+
+    from insurance_conformal.risk import PremiumSufficiencyController
+
+    psc = PremiumSufficiencyController(alpha=0.05)
+    psc.calibrate(y_cal, premium_cal)
+    result = psc.predict(premium_new)
+    # result["upper_bound"] = risk-controlled loading factor per policy
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -86,6 +103,7 @@ __all__ = [
     "ert_coverage_gap",
     "subgroup_coverage",
     "width_efficiency_comparison",
+    # v0.3: risk subpackage (import from insurance_conformal.risk)
 ]
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"

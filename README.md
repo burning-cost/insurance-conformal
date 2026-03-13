@@ -236,3 +236,57 @@ MIT. See [LICENSE](LICENSE).
 ## Contributing
 
 Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal](https://github.com/burning-cost/insurance-conformal).
+
+---
+
+## Conformal Risk Control
+
+Standard conformal prediction controls coverage probability: P(Y in C(X)) >= 1 - alpha. That guarantees a fraction of intervals contain the true outcome — but says nothing about how badly wrong the misses are. For insurance pricing, the question that matters is different: how much are we underpriced, in expectation?
+
+The `insurance_conformal.risk` subpackage implements **Conformal Risk Control** (CRC, Angelopoulos et al., ICLR 2024), which controls expected loss directly:
+
+```
+E[L(C_lambda(X), Y)] <= alpha
+```
+
+for any bounded monotone loss L. No parametric assumptions. Finite-sample valid.
+
+### Lead use case: premium sufficiency control
+
+Given a GBM that outputs predicted pure premium p(X), find the smallest loading factor lambda* such that the expected shortfall from underpriced policies is bounded:
+
+```python
+from insurance_conformal.risk import PremiumSufficiencyController
+
+psc = PremiumSufficiencyController(alpha=0.05)
+psc.calibrate(y_cal, premium_cal)   # calibrate on held-out year
+result = psc.predict(premium_new)   # apply to next year's book
+# result["upper_bound"]: risk-controlled loading factor per policy
+# result["lambda_hat"]: the single lambda* that achieves E[shortfall] <= 5%
+```
+
+### Three controllers
+
+| Controller | Use case |
+|---|---|
+| `PremiumSufficiencyController` | Bound expected underpricing shortfall: E[max(claim - lambda * premium, 0) / premium] <= alpha |
+| `IntervalWidthController` | Find the most efficient conformal quantile level that still bounds expected interval width |
+| `SelectiveRiskController` | Accept/reject risks to bound expected loss on the accepted book |
+
+### Import path
+
+```python
+from insurance_conformal.risk import (
+    PremiumSufficiencyController,
+    IntervalWidthController,
+    SelectiveRiskController,
+    conformal_risk_calibration,
+    shortfall_loss,
+    premium_sufficiency_report,
+)
+```
+
+### References
+
+- Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., & Schuster, T. (2024). Conformal Risk Control. ICLR 2024. arXiv:2208.02814.
+- Selective CRC: arXiv:2512.12844 (2025).
