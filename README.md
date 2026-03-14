@@ -214,6 +214,11 @@ This is distribution-free - it holds regardless of the true data distribution, m
 
 ---
 
+
+## Databricks Notebook
+
+A ready-to-run Databricks notebook benchmarking this library against standard approaches is available in [burning-cost-examples](https://github.com/burning-cost/burning-cost-examples/blob/main/notebooks/conformal_prediction_intervals.py).
+
 ## Other Burning Cost libraries
 
 **Model building**
