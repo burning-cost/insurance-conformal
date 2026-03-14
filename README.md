@@ -98,6 +98,11 @@ print(intervals.head())
 # 2    0.1820  1.2742   4.9621
 ```
 
+## Worked Example
+
+[`conformal_prediction_intervals.py`](https://github.com/burning-cost/burning-cost-examples/blob/main/examples/conformal_prediction_intervals.py) compares Tweedie conformal prediction intervals against a parametric bootstrap baseline on a synthetic motor book, then drills into per-segment coverage analysis across risk deciles and vehicle groups. It shows exactly where the bootstrap fails to meet its stated 90% coverage target — and confirms that the conformal approach holds by construction.
+
+
 ---
 
 ## Coverage diagnostics
