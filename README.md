@@ -1,10 +1,31 @@
 # insurance-conformal
-[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml)
-[![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-Distribution-free prediction intervals for insurance GBM and GLM pricing models. For pricing actuaries who need uncertainty quantification that doesn't rely on the model being correctly specified.
+[![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
+[![Python](https://img.shields.io/pypi/pyversions/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]()
+[![License](https://img.shields.io/badge/license-BSD--3-blue)]()
+
+Distribution-free prediction intervals for insurance GBM and GLM pricing models — for pricing actuaries who need uncertainty quantification that holds regardless of model specification, without the coverage failures that parametric intervals produce on heterogeneous motor books.
+
+---
+
+## Why bother
+
+Benchmarked against naive parametric intervals (Poisson GLM residual sigma) on synthetic UK motor data — 50,000 policies, temporal 60/20/20 train/calibration/test split. Same CatBoost Poisson point forecast for both methods.
+
+| Metric | Naive parametric | Conformal (split) | Conformal (LW) |
+|--------|-----------------|-------------------|----------------|
+| Coverage (90% target) | Often misses in high-risk tail | Meets by construction | Meets by construction |
+| Worst-decile coverage | Can be 70-80% | Near target | Near target |
+| Mean interval width | Reference | Comparable | ~10-20% narrower |
+| Calibration overhead | ~0s | ~1s | +2-5 min (secondary GBM) |
+| Adaptive width | No | Partial (Pearson) | Yes |
+
+The 10-20 percentage point undercoverage in the top decile is the problem this library solves. Conformal intervals meet the stated target by construction — the only requirement is an exchangeable calibration set, which any temporal split provides.
+
+---
+
+[Run on Databricks](https://github.com/burning-cost/burning-cost-examples/blob/main/notebooks/conformal_prediction_intervals.py)
 
 ---
 
@@ -206,113 +227,6 @@ This is distribution-free - it holds regardless of the true data distribution, m
 
 ---
 
-## References
-
-- Manna, S. et al. (2025). "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921*.
-- Angelopoulos, A. N., & Bates, S. (2023). "Conformal prediction: A gentle introduction." *Foundations and Trends in Machine Learning*, 16(4), 494-591.
-- Vovk, V., Gammerman, A., & Shafer, G. (2005). *Algorithmic learning in a random world*. Springer.
-
----
-
-## Other Burning Cost libraries
-
-**Model building**
-
-| Library | Description |
-|---------|-------------|
-| [shap-relativities](https://github.com/burning-cost/shap-relativities) | Extract rating relativities from GBMs using SHAP |
-| [insurance-interactions](https://github.com/burning-cost/insurance-interactions) | Automated GLM interaction detection via CANN and NID scores |
-| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Walk-forward cross-validation respecting IBNR structure |
-
-**Uncertainty quantification**
-
-| Library | Description |
-|---------|-------------|
-| [bayesian-pricing](https://github.com/burning-cost/bayesian-pricing) | Hierarchical Bayesian models for thin-data segments |
-| [insurance-credibility](https://github.com/burning-cost/insurance-credibility) | Bühlmann-Straub credibility weighting |
-| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Full conditional distribution per risk: mean, variance, CoV |
-
-**Deployment and optimisation**
-
-| Library | Description |
-|---------|-------------|
-| [insurance-optimise](https://github.com/burning-cost/insurance-optimise) | Constrained rate change optimisation with FCA PS21/5 compliance |
-| [insurance-demand](https://github.com/burning-cost/insurance-demand) | Conversion, retention, and price elasticity modelling |
-
-**Governance**
-
-| Library | Description |
-|---------|-------------|
-| [insurance-fairness](https://github.com/burning-cost/insurance-fairness) | Proxy discrimination auditing for UK insurance models |
-| [insurance-causal](https://github.com/burning-cost/insurance-causal) | Double Machine Learning for causal pricing inference |
-| [insurance-monitoring](https://github.com/burning-cost/insurance-monitoring) | Model monitoring: PSI, A/E ratios, Gini drift test |
-
-**Spatial**
-
-| Library | Description |
-|---------|-------------|
-| [insurance-spatial](https://github.com/burning-cost/insurance-spatial) | BYM2 spatial territory ratemaking for UK personal lines |
-
-[All libraries](https://burning-cost.github.io)
-
----
-
-## Performance
-
-Benchmarked against naive parametric intervals (Poisson GLM residual sigma) on synthetic UK motor data — 50,000 policies, known DGP, temporal 60/20/20 train/calibration/test split. Same CatBoost Poisson point forecast for both methods; only the interval construction differs. See `notebooks/benchmark.py` for full methodology.
-
-| Metric | Naive parametric | Conformal (split) | Conformal (LW) |
-|--------|-----------------|-------------------|----------------|
-| Empirical coverage (90% target) | Often < 90% | >= 90% (guaranteed) | >= 90% (guaranteed) |
-| Worst-decile coverage | Can be 70-80% | Near target | Near target |
-| Mean interval width | Reference | Comparable | ~10-20% narrower |
-| Calibration overhead | ~0s | ~1s | +2-5 min (secondary GBM) |
-| Adaptive width | No | Partial (Pearson) | Yes |
-
-The coverage guarantee is the primary result. Naive parametric intervals undercover high-risk segments by 10-20 percentage points on heterogeneous motor books because they assume homoscedastic normal residuals. Conformal intervals meet the stated target by construction — the only requirement is an exchangeable calibration set, which any temporal split provides.
-
-
-## Related Libraries
-
-| Library | What it does |
-|---------|-------------|
-| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Temporal cross-validation — provides the calibration splits conformal prediction requires to maintain coverage guarantees |
-| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Parametric severity distributions — alternative when closed-form tail quantities are needed rather than distribution-free intervals |
-| [insurance-quantile](https://github.com/burning-cost/insurance-quantile) | Quantile GBM for tail risk — feeds directly into conformalized quantile regression for distribution-free coverage |
-
-## Licence
-
-MIT. See [LICENSE](LICENSE).
-
-## Contributing
-
-Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal](https://github.com/burning-cost/insurance-conformal).
-
----
-
----
-
-## Performance
-
-Benchmarked against **naive parametric intervals** (global Poisson residual sigma) on synthetic UK motor data — 50,000 policies, known DGP, temporal 60/20/20 train/calibration/test split. Full notebook: `notebooks/benchmark.py`.
-
-Both methods wrap the same underlying CatBoost Poisson point forecast. The comparison isolates interval construction: one method uses a single global sigma from calibration residuals; the other uses split conformal prediction with a `pearson_weighted` non-conformity score.
-
-| Metric | Naive parametric | Conformal (split) | Conformal (LW) |
-|--------|-----------------|-------------------|----------------|
-| Coverage (90% target) | often misses | meets by construction | meets by construction |
-| Worst-decile coverage | can be 70–80% | near target | near target |
-| Mean interval width | reference | comparable | ~10–20% narrower |
-| Calibration overhead | ~0s | ~1s (quantile lookup) | +2–5 min (secondary GBM) |
-| Adaptive width | no | partial (Pearson score) | yes |
-
-The primary metric is coverage — whether the stated 90% actually holds. Naive parametric intervals meet the target only when residuals are homoscedastic and normally distributed. On heterogeneous motor books, those assumptions fail in the high-risk tail, producing 10–20 percentage point undercoverage in the decile that matters most for reinsurance and SCR calculations.
-
-**When to use:** When the coverage level is contractual, regulatory, or feeds into reinsurance attachment pricing. Conformal prediction provides a finite-sample guarantee regardless of the residual distribution. Use `LocallyWeightedConformal` when you want adaptive-width intervals that are wider for uncertain, high-risk segments.
-
-**When NOT to use:** When point estimates are the primary deliverable and intervals are a minor annotation — the calibration split infrastructure adds operational overhead that is not justified if intervals are not used for decisions. On stable, homogeneous books the parametric approach is approximately correct and simpler to explain in actuarial sign-off.
-
-
 ## Conformal Risk Control
 
 Standard conformal prediction controls coverage probability: P(Y in C(X)) >= 1 - alpha. That guarantees a fraction of intervals contain the true outcome — but says nothing about how badly wrong the misses are. For insurance pricing, the question that matters is different: how much are we underpriced, in expectation?
@@ -364,3 +278,74 @@ from insurance_conformal.risk import (
 
 - Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., & Schuster, T. (2024). Conformal Risk Control. ICLR 2024. arXiv:2208.02814.
 - Selective CRC: arXiv:2512.12844 (2025).
+
+---
+
+## References
+
+- Manna, S. et al. (2025). "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921*.
+- Angelopoulos, A. N., & Bates, S. (2023). "Conformal prediction: A gentle introduction." *Foundations and Trends in Machine Learning*, 16(4), 494-591.
+- Vovk, V., Gammerman, A., & Shafer, G. (2005). *Algorithmic learning in a random world*. Springer.
+
+---
+
+## Related Libraries
+
+| Library | What it does |
+|---------|-------------|
+| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Temporal cross-validation — provides the calibration splits conformal prediction requires to maintain coverage guarantees |
+| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Parametric severity distributions — alternative when closed-form tail quantities are needed rather than distribution-free intervals |
+| [insurance-quantile](https://github.com/burning-cost/insurance-quantile) | Quantile GBM for tail risk — feeds directly into conformalized quantile regression for distribution-free coverage |
+
+---
+
+## Other Burning Cost libraries
+
+**Model building**
+
+| Library | Description |
+|---------|-------------|
+| [shap-relativities](https://github.com/burning-cost/shap-relativities) | Extract rating relativities from GBMs using SHAP |
+| [insurance-interactions](https://github.com/burning-cost/insurance-interactions) | Automated GLM interaction detection via CANN and NID scores |
+| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Walk-forward cross-validation respecting IBNR structure |
+
+**Uncertainty quantification**
+
+| Library | Description |
+|---------|-------------|
+| [bayesian-pricing](https://github.com/burning-cost/bayesian-pricing) | Hierarchical Bayesian models for thin-data segments |
+| [insurance-credibility](https://github.com/burning-cost/insurance-credibility) | Bühlmann-Straub credibility weighting |
+| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Full conditional distribution per risk: mean, variance, CoV |
+
+**Deployment and optimisation**
+
+| Library | Description |
+|---------|-------------|
+| [insurance-optimise](https://github.com/burning-cost/insurance-optimise) | Constrained rate change optimisation with FCA PS21/5 compliance |
+| [insurance-demand](https://github.com/burning-cost/insurance-demand) | Conversion, retention, and price elasticity modelling |
+
+**Governance**
+
+| Library | Description |
+|---------|-------------|
+| [insurance-fairness](https://github.com/burning-cost/insurance-fairness) | Proxy discrimination auditing for UK insurance models |
+| [insurance-causal](https://github.com/burning-cost/insurance-causal) | Double Machine Learning for causal pricing inference |
+| [insurance-monitoring](https://github.com/burning-cost/insurance-monitoring) | Model monitoring: PSI, A/E ratios, Gini drift test |
+
+**Spatial**
+
+| Library | Description |
+|---------|-------------|
+| [insurance-spatial](https://github.com/burning-cost/insurance-spatial) | BYM2 spatial territory ratemaking for UK personal lines |
+
+[All libraries](https://burning-cost.github.io)
+
+---
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
+
+## Contributing
+
+Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal](https://github.com/burning-cost/insurance-conformal).
