@@ -264,6 +264,15 @@ Benchmarked against naive parametric intervals (Poisson GLM residual sigma) on s
 
 The coverage guarantee is the primary result. Naive parametric intervals undercover high-risk segments by 10-20 percentage points on heterogeneous motor books because they assume homoscedastic normal residuals. Conformal intervals meet the stated target by construction — the only requirement is an exchangeable calibration set, which any temporal split provides.
 
+
+## Related Libraries
+
+| Library | What it does |
+|---------|-------------|
+| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Temporal cross-validation — provides the calibration splits conformal prediction requires to maintain coverage guarantees |
+| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Parametric severity distributions — alternative when closed-form tail quantities are needed rather than distribution-free intervals |
+| [insurance-quantile](https://github.com/burning-cost/insurance-quantile) | Quantile GBM for tail risk — feeds directly into conformalized quantile regression for distribution-free coverage |
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
