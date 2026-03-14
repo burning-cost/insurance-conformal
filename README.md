@@ -51,7 +51,19 @@ uv add "insurance-conformal[all]"
 ## Quick start
 
 ```python
+import numpy as np
 from insurance_conformal import InsuranceConformalPredictor
+
+# Synthetic data: 50k training, 10k calibration, 10k test
+rng = np.random.default_rng(42)
+n_train, n_cal, n_test = 50_000, 10_000, 10_000
+n_features = 6
+X_train = rng.standard_normal((n_train, n_features))
+X_cal   = rng.standard_normal((n_cal,   n_features))
+X_test  = rng.standard_normal((n_test,  n_features))
+y_train = rng.gamma(shape=1.5, scale=500, size=n_train)
+y_cal   = rng.gamma(shape=1.5, scale=500, size=n_cal)
+y_test  = rng.gamma(shape=1.5, scale=500, size=n_test)
 
 # Fit your model however you normally would
 import catboost
@@ -62,7 +74,7 @@ model = catboost.CatBoostRegressor(
     depth=6,
     verbose=0,
 )
-model.fit(X_train_pd, y_train)
+model.fit(X_train, y_train)
 
 # Wrap it
 cp = InsuranceConformalPredictor(
@@ -105,12 +117,21 @@ print(diag)
 # Full summary: marginal coverage + decile breakdown
 cp.summary(X_test, y_test, alpha=0.10)
 
-# Matplotlib plot with confidence bands
-fig = cp.coverage_plot(X_test, y_test, alpha=0.10)
+# Matplotlib plots - use CoverageDiagnostics for coverage_plot and interval_width_distribution
+from insurance_conformal import CoverageDiagnostics
+intervals_for_diag = cp.predict_interval(X_test, alpha=0.10)
+diag_tool = CoverageDiagnostics(
+    y_true=y_test,
+    y_lower=intervals_for_diag["lower"].to_numpy(),
+    y_upper=intervals_for_diag["upper"].to_numpy(),
+    y_pred=intervals_for_diag["point"].to_numpy(),
+    alpha=0.10,
+)
+fig = diag_tool.coverage_plot()
 fig.savefig("coverage_by_decile.png", dpi=150)
 
 # Interval width distribution
-fig = cp.interval_width_distribution(X_test, alpha=0.10)
+fig = diag_tool.interval_width_distribution()
 ```
 
 ---
