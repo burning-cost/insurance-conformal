@@ -28,11 +28,11 @@ jobs:
           pip install pdoc
           pip install -e ".[all]"
       - name: Generate docs
-        run: pdoc --html --output-dir ./docs insurance_conformal
+        run: pdoc -o ./docs insurance_conformal
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs/insurance_conformal
+          path: ./docs
 
   deploy:
     needs: build
