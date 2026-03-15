@@ -394,32 +394,41 @@ class TestP15HongTransformDeadCode:
 
     def test_degenerate_upper_triggers_warning(self):
         """
-        When W_k is very negative (model hugely over-predicts), h(x) + W_k < 0.
+        When W_k is very negative and h(x) is small, h(x) + W_k < 0.
         A UserWarning should be raised — not a silent clip.
+
+        Scenario: calibration h over-predicts massively (h=200 vs y=1),
+        making W_cal = y - h = -199. At test time h predicts 0.1.
+        uppers = 0.1 + (-199) = -198.9 < 0 -> warning.
         """
         from insurance_conformal.claims.hong import HongTransformConformal
 
-        # Create a scenario where calibration residuals W = y - h(X) are all
-        # very negative: h(X) = 100 but y ~ 1, so W ~ -99
         n_cal = 50
         rng = np.random.default_rng(0)
         X_cal = rng.normal(size=(n_cal, 2))
-        y_cal = np.ones(n_cal) * 1.0
+        y_cal = np.ones(n_cal) * 1.0  # y = 1
 
-        # h always predicts 100 (huge over-prediction -> residuals -99)
-        class ConstantModel:
+        # Switching model: first predict call (calibration) returns 200,
+        # second predict call (test) returns 0.1.
+        # This creates W_cal = 1 - 200 = -199, then uppers = 0.1 + (-199) < 0.
+        class SwitchingModel:
+            def __init__(self):
+                self._call_count = 0
             def fit(self, X, y):
                 return self
             def predict(self, X):
-                return np.full(len(X), 100.0)
+                self._call_count += 1
+                if self._call_count <= 1:
+                    return np.full(len(X), 200.0)  # calibration: over-predict
+                return np.full(len(X), 0.1)         # test: under-predict
 
-        htc = HongTransformConformal(h_model=ConstantModel())
+        htc = HongTransformConformal(h_model=SwitchingModel())
         htc.fit(X_cal, y_cal, X_cal, y_cal)
 
         X_test = rng.normal(size=(5, 2))
 
         with pytest.warns(UserWarning, match="negative"):
-            intervals = htc.predict_interval(X_test, alpha=0.99)
+            intervals = htc.predict_interval(X_test, alpha=0.01)
 
         # After warning, uppers are clipped at 0
         assert np.all(intervals[:, 1] >= 0.0)
