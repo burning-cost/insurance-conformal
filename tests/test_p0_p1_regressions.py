@@ -412,18 +412,28 @@ class TestP15HongTransformDeadCode:
         # second predict call (test) returns 0.1.
         # This creates W_cal = 1 - 200 = -199, then uppers = 0.1 + (-199) < 0.
         class SwitchingModel:
+            """Model that over-predicts during calibration, under-predicts at test."""
             def __init__(self):
-                self._call_count = 0
+                self._fitted = False
             def fit(self, X, y):
+                self._fitted = True
                 return self
             def predict(self, X):
-                self._call_count += 1
-                if self._call_count <= 1:
-                    return np.full(len(X), 200.0)  # calibration: over-predict
-                return np.full(len(X), 0.1)         # test: under-predict
+                if not self._fitted:
+                    return np.full(len(X), 200.0)
+                # After fit: first call is calibration (over-predict),
+                # then switch to under-predict for test time
+                self._fitted = False  # reset so next call under-predicts
+                return np.full(len(X), 200.0)  # calibration: over-predict
 
+        # Manually construct the scenario: calibrate with huge residuals,
+        # then predict on test where uppers go negative
         htc = HongTransformConformal(h_model=SwitchingModel())
         htc.fit(X_cal, y_cal, X_cal, y_cal)
+
+        # Monkey-patch _h_predict to return tiny values at test time
+        # so that h(x) + W_k < 0 (W_k is very negative from calibration)
+        htc._h_predict = lambda X: np.full(len(X), 0.1)
 
         X_test = rng.normal(size=(5, 2))
 
