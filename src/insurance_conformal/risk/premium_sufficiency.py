@@ -58,14 +58,12 @@ class PremiumSufficiencyController:
         Grid of multipliers to search over. If None, defaults to
         np.linspace(0.5, 5.0, 500). Must be sorted ascending. Larger lambda
         = higher upper bound = lower shortfall (monotone).
-    B : float, default 1.0
-        Upper bound on the loss. For the normalised shortfall loss where
-        the denominator is the premium, B = max_claim/min_premium in the
-        calibration set. In practice, if policies have a maximum sum insured
-        (which they always do), B is bounded. The default of 1.0 is valid
-        only if claims never exceed premium — rarely true. Inspect your data
-        and set B = np.percentile(y_cal / premium_cal, 99.9) or the policy
-        limit / minimum premium.
+    B : float
+        Upper bound on the normalised shortfall loss (max_claim / min_premium
+        in the calibration set). Required — no default. Setting B=1.0 is
+        almost always wrong for insurance claims where a single large claim
+        can far exceed premium. Use B = np.max(y_cal / premium_cal) or the
+        policy limit divided by the minimum premium in your portfolio.
 
     Attributes
     ----------
@@ -79,7 +77,7 @@ class PremiumSufficiencyController:
 
     Examples
     --------
-    >>> psc = PremiumSufficiencyController(alpha=0.05)
+    >>> psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
     >>> psc.calibrate(y_cal, premium_cal)
     >>> result = psc.predict(premium_new)
     >>> print(result.head())
@@ -91,7 +89,7 @@ class PremiumSufficiencyController:
         >>> cp.calibrate(X_cal, y_cal)
         >>> upper_cal = cp.predict_interval(X_cal)["upper"].to_numpy()
         >>> # Now calibrate risk control on top of conformal intervals
-        >>> psc = PremiumSufficiencyController(alpha=0.03)
+        >>> psc = PremiumSufficiencyController(alpha=0.03, B=5.0)
         >>> psc.calibrate(y_cal, upper_cal)
     """
 
@@ -99,10 +97,17 @@ class PremiumSufficiencyController:
         self,
         alpha: float,
         lambda_grid: Optional[np.ndarray] = None,
-        B: float = 1.0,
+        B: Optional[float] = None,
     ) -> None:
         if not (0 < alpha < 1):
             raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+        if B is None:
+            raise ValueError(
+                "B must be provided. B is the upper bound on the normalised shortfall loss "
+"(max_claim / min_premium in the calibration set). Default B=1.0 is almost always wrong "
+"for insurance claims where single large claims can far exceed the premium. "
+"Set B = np.max(y_cal / premium_cal) or use the policy limit / minimum premium."
+            )
         if B <= 0:
             raise ValueError(f"B must be positive, got {B}")
 

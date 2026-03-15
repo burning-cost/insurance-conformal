@@ -167,16 +167,22 @@ def gwc_quantile(
     return q_scalar, mu_hat, sigma_hat
 
 
-def lwc_quantile(
+def gwc_quantile_vec(
     residuals: NDArray[np.floating],
     alpha: float,
 ) -> tuple[NDArray[np.floating], NDArray[np.floating], NDArray[np.floating]]:
     """
-    Local Worst-Case (LWC) quantile from Fan & Sesia (arXiv:2512.15383), Algorithm 2.
+    Global Worst-Case (GWC) quantile returning per-dimension thresholds vector.
 
-    LWC is tighter than GWC by partitioning calibration points by which
-    dimension achieves the max standardized score, then computing a
-    group-specific quantile within each partition.
+    This is the vector form of gwc_quantile: returns (thresholds, mu_hat, sigma_hat)
+    where thresholds[j] = q_global for all j. This is equivalent to GWC — every
+    dimension gets the same global max-score quantile as its threshold.
+
+    Previously named lwc_quantile, which was a misnomer: the implementation sets
+    all per-dimension thresholds to q_global, which is the GWC formula, not LWC.
+    The correctly-implemented LWC is in lwc_quantile_exact.
+
+    Use lwc_quantile_exact for the true LWC algorithm.
 
     The core insight: if we know that for a new test point, dimension j is
     the binding constraint (its standardized residual is largest), then the
@@ -316,7 +322,7 @@ def lwc_quantile_exact(
     residuals: shape (n, d).
     alpha: joint miscoverage level.
 
-    Returns: (thresholds, mu_hat, sigma_hat) — same signature as lwc_quantile.
+    Returns: (thresholds, mu_hat, sigma_hat) — same signature as gwc_quantile_vec.
     """
     residuals = np.asarray(residuals, dtype=float)
     if residuals.ndim == 1:

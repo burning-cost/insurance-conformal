@@ -24,7 +24,7 @@ Three controllers, each for a different use case:
 
     from insurance_conformal.risk import PremiumSufficiencyController
 
-    psc = PremiumSufficiencyController(alpha=0.05)
+    psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
     psc.calibrate(y_cal, premium_cal)
     result = psc.predict(premium_new)
     # result["upper_bound"] = risk-controlled upper bound per policy

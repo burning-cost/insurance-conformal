@@ -155,7 +155,10 @@ class HongModelFree:
 
             W_sorted = np.sort(W)
             upper = float(W_sorted[k - 1]) if k <= n else float(np.inf)
-            lower = float(np.clip(0.0, self.clip_lower, None))
+            # clip_lower sets the minimum for the lower bound.
+            # np.clip(0.0, clip_lower, None) always clips the constant 0.0, not
+            # the upper bound — dead code. Use clip_lower directly as the floor.
+            lower = float(self.clip_lower)
 
             lowers.append(lower)
             uppers.append(upper)

@@ -9,7 +9,7 @@ from insurance_conformal.multivariate.methods import (
     bonferroni_quantile,
     sidak_quantile,
     gwc_quantile,
-    lwc_quantile,
+    gwc_quantile_vec,
     lwc_quantile_exact,
     _coordinate_standardize,
 )
@@ -129,7 +129,7 @@ class TestGWCQuantile:
 
 class TestLWCQuantile:
     def test_returns_d_thresholds(self, simple_residuals_2d):
-        t, mu, sigma = lwc_quantile(simple_residuals_2d, alpha=0.05)
+        t, mu, sigma = gwc_quantile_vec(simple_residuals_2d, alpha=0.05)
         assert t.shape == (2,)
         assert mu.shape == (2,)
         assert sigma.shape == (2,)
@@ -137,20 +137,20 @@ class TestLWCQuantile:
     def test_thresholds_leq_gwc(self, simple_residuals_2d):
         # LWC should be <= GWC (tighter or equal)
         q_gwc, _, _ = gwc_quantile(simple_residuals_2d, alpha=0.05)
-        t_lwc, _, _ = lwc_quantile(simple_residuals_2d, alpha=0.05)
+        t_gwc_vec, _, _ = gwc_quantile_vec(simple_residuals_2d, alpha=0.05)
         # Each dimension threshold should be <= q_gwc
-        assert np.all(t_lwc <= q_gwc + 1e-10)
+        assert np.all(t_gwc_vec <= q_gwc + 1e-10)
 
     def test_3d(self, simple_residuals_3d):
-        t, mu, sigma = lwc_quantile(simple_residuals_3d, alpha=0.05)
+        t, mu, sigma = gwc_quantile_vec(simple_residuals_3d, alpha=0.05)
         assert t.shape == (3,)
 
     def test_1d_reduces_to_gwc(self):
         rng = np.random.default_rng(6)
         res = np.abs(rng.normal(0, 1, 100)).reshape(-1, 1)
         q_gwc, _, _ = gwc_quantile(res, alpha=0.05)
-        t_lwc, _, _ = lwc_quantile(res, alpha=0.05)
-        assert t_lwc[0] == pytest.approx(q_gwc, rel=1e-6)
+        t_gwc_vec, _, _ = gwc_quantile_vec(res, alpha=0.05)
+        assert t_gwc_vec[0] == pytest.approx(q_gwc, rel=1e-6)
 
 
 class TestLWCQuantileExact:
@@ -195,7 +195,7 @@ class TestMethodConsistency:
         q_bonf = bonferroni_quantile(simple_residuals_2d, alpha)
         q_sid = sidak_quantile(simple_residuals_2d, alpha)
         q_gwc, mu_gwc, sigma_gwc = gwc_quantile(simple_residuals_2d, alpha)
-        t_lwc, mu_lwc, sigma_lwc = lwc_quantile_exact(simple_residuals_2d, alpha)
+        t_gwc_vec, mu_lwc, sigma_lwc = lwc_quantile_exact(simple_residuals_2d, alpha)
 
         assert q_bonf.shape == (2,)
         assert q_sid.shape == (2,)

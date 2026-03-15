@@ -346,10 +346,28 @@ class HongTransformConformal:
 
         h_new = self._h_predict(X_new)
         uppers = h_new + W_k
-        lowers = np.maximum(0.0, h_new - np.abs(W_k))  # symmetric lower, clipped
-        # For one-sided upper bound (claims context), lower = 0
+        # Lower bound is 0 for insurance claims (non-negative by definition).
+        # The previous symmetric lower-bound computation was dead code overwritten
+        # by the next line, so it has been removed.
         lowers = np.zeros_like(uppers)
-        uppers = np.maximum(0.0, uppers)  # Upper cannot be negative
+
+        # Warn if the upper bound is negative — this indicates a degenerate
+        # calibration where the (1-alpha) residual quantile W_k is so negative
+        # that h(x) + W_k < 0. The model h is a poor fit or the calibration
+        # set is too small. Clipping silently would hide this problem.
+        n_negative = int(np.sum(uppers < 0))
+        if n_negative > 0:
+            import warnings
+            warnings.warn(
+                f"{n_negative} upper bounds are negative (degenerate interval). "
+                "This means h(x) + W_k < 0, which occurs when the calibration "
+                "residual quantile is more negative than the model prediction. "
+                "Check that the h model is a reasonable fit and that the "
+                "calibration set is representative.",
+                UserWarning,
+                stacklevel=2,
+            )
+        uppers = np.maximum(0.0, uppers)
 
         return np.column_stack([lowers, uppers])
 

@@ -246,7 +246,7 @@ Given a GBM that outputs predicted pure premium p(X), find the smallest loading 
 ```python
 from insurance_conformal.risk import PremiumSufficiencyController
 
-psc = PremiumSufficiencyController(alpha=0.05)
+psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
 psc.calibrate(y_cal, premium_cal)   # calibrate on held-out year
 result = psc.predict(premium_new)   # apply to next year's book
 # result["upper_bound"]: risk-controlled loading factor per policy

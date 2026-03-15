@@ -73,7 +73,7 @@ For conformal risk control (premium sufficiency)::
 
     from insurance_conformal.risk import PremiumSufficiencyController
 
-    psc = PremiumSufficiencyController(alpha=0.05)
+    psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
     psc.calibrate(y_cal, premium_cal)
     result = psc.predict(premium_new)
     # result["upper_bound"] = risk-controlled loading factor per policy
@@ -141,4 +141,4 @@ __all__ = [
     # v0.4: multivariate subpackage (import from insurance_conformal.multivariate)
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"

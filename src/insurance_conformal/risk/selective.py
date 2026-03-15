@@ -228,7 +228,12 @@ class SelectiveRiskController:
         # and find threshold as: smallest t where risk_at_lambda[j] + B/(n+1) <= alpha
         # This is a simplified version of SCRC-I appropriate for moderate n.
 
-        corrected_risk = (n / (n + 1)) * risk_at_lambda + self.B / (n + 1)
+        # CRC finite-sample correction: use n_sel (selected obs count) not n.
+        # The correction accounts for the effective calibration set at each
+        # threshold — we only observe losses for selected observations, so the
+        # relevant sample size for the conformal guarantee is n_sel, not n.
+        n_sel_at_lambda = np.maximum(1, np.round(selection_rate_at_lambda * n).astype(int))
+        corrected_risk = (n_sel_at_lambda / (n_sel_at_lambda + 1)) * risk_at_lambda + self.B / (n_sel_at_lambda + 1)
 
         # Find smallest lambda (least restrictive) that controls conditional risk
         valid = np.where(corrected_risk <= self.alpha)[0]

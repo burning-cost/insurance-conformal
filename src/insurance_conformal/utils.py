@@ -115,27 +115,29 @@ def apply_exposure(
     """
     Apply exposure offset to observed and predicted values.
 
-    For frequency models with an exposure offset, y is a count and yhat
-    is the expected count (already multiplied by exposure in the model's
-    predict call). If the user passes raw rates, we need to convert.
+    Divides both y and yhat by exposure to produce annualised (per-unit)
+    values. This is the correct adjustment for frequency models where:
+    - y is a count (e.g. 1 claim in 6 months of cover)
+    - yhat is an expected count incorporating the exposure offset
+    - The nonconformity score should operate on annualised rates
 
-    This function assumes yhat already incorporates exposure (which is
-    standard for CatBoost offset models). The exposure parameter here
-    is used only for validation and documentation.
+    For example, a policy with 0.5 years of exposure and 1 claim should
+    be treated as a 2-claim-per-year risk, not a 1-claim-per-half-year risk.
+    Dividing by exposure annualises both y and yhat consistently.
 
     Parameters
     ----------
     y : np.ndarray
-        Observed values (counts or rates, depending on model).
+        Observed values (counts or amounts, not yet annualised).
     yhat : np.ndarray
-        Predicted values from model.predict().
+        Predicted values from model.predict() (incorporating exposure).
     exposure : np.ndarray or None
-        Exposure weights. If None, no adjustment is made.
+        Exposure weights (e.g. years of cover). If None, no adjustment is made.
 
     Returns
     -------
-    y, yhat : both as np.ndarray
-        Potentially adjusted values.
+    y_adj, yhat_adj : both as np.ndarray
+        Annualised values (divided by exposure).
     """
     if exposure is None:
         return y, yhat
@@ -144,7 +146,7 @@ def apply_exposure(
     if np.any(exposure <= 0):
         raise ValueError("All exposure values must be positive.")
 
-    return y, yhat
+    return y / exposure, yhat / exposure
 
 
 def as_numpy(x: Any) -> np.ndarray:

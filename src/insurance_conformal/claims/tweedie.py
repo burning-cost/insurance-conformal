@@ -253,15 +253,19 @@ class TweedieAnscombeScore:
     The Anscombe transformation normalises the Tweedie response to approximate
     normality. The nonconformity score is:
 
-        R = |y^{1-p/3} - mu^{1-p/3}| / mu^{p/6}
+        R = |y^{(2-p)/2} - mu^{(2-p)/2}| / mu^{(2-p)/2 - 1}
 
-    This is the residual after applying the variance-stabilising Anscombe
-    transformation A(y) = y^{1-p/3} / (1-p/3) for p != 3.
+    This uses the variance-stabilising Anscombe transform A(y) = y^{(2-p)/2}
+    whose derivative A'(mu) = (2-p)/2 * mu^{(2-p)/2 - 1}, consistent with the
+    anscombe_score() function in scores.py.
+
+    Note: the previous implementation used exponent 1-p/3 which is incorrect
+    for the Tweedie Anscombe transform and inconsistent with scores.py.
 
     Parameters
     ----------
     p : float
-        Tweedie power. Default: 1.5. Must not equal 3.
+        Tweedie power. Default: 1.5. Must not equal 2.
     min_mu : float
         Lower clip for mu_hat. Default: 1e-6.
 
@@ -271,12 +275,13 @@ class TweedieAnscombeScore:
     """
 
     def __init__(self, p: float = 1.5, min_mu: float = 1e-6) -> None:
-        if abs(p - 3.0) < 1e-9:
-            raise ValueError("Anscombe score undefined for p=3 (use Gamma score instead)")
+        if abs(p - 2.0) < 1e-9:
+            raise ValueError("Anscombe score undefined for p=2 (exponent is 0; use Gamma/log transform)")
         self.p = float(p)
         self.min_mu = float(min_mu)
-        self._exp_y = 1.0 - p / 3.0  # exponent for y
-        self._exp_mu = p / 6.0       # exponent for mu denominator
+        # Variance-stabilising transform A(y) = y^{(2-p)/2}, matching scores.py
+        self._exp_y = (2.0 - p) / 2.0   # exponent for y and mu in the transform
+        self._exp_mu = self._exp_y - 1.0  # derivative exponent = (2-p)/2 - 1 = -p/2
 
     def score(self, y: np.ndarray, y_hat: np.ndarray) -> np.ndarray:
         """Compute Anscombe nonconformity scores.
@@ -289,7 +294,7 @@ class TweedieAnscombeScore:
         Returns
         -------
         scores : np.ndarray, shape (n,)
-            R_i = |y_i^{1-p/3} - mu_i^{1-p/3}| / mu_i^{p/6}
+            R_i = |y_i^{(2-p)/2} - mu_i^{(2-p)/2}| / mu_i^{(2-p)/2 - 1}
         """
         y = np.asarray(y, dtype=float)
         y_hat = np.asarray(y_hat, dtype=float)
@@ -305,7 +310,7 @@ class TweedieAnscombeScore:
     ) -> np.ndarray:
         """Invert the Anscombe score to obtain prediction bounds.
 
-        Solves |y^{1-p/3} - mu^{1-p/3}| / mu^{p/6} = s for y.
+        Solves |y^{(2-p)/2} - mu^{(2-p)/2}| / mu^{(2-p)/2 - 1} = s for y.
 
         Parameters
         ----------
@@ -321,14 +326,14 @@ class TweedieAnscombeScore:
         mu = np.clip(y_hat, self.min_mu, None)
         s_arr = np.broadcast_to(np.asarray(s, dtype=float), y_hat.shape)
 
-        # Invert: y^{1-p/3} = mu^{1-p/3} +/- s * mu^{p/6}
-        # => y = (mu^{1-p/3} +/- s * mu^{p/6})^{1/(1-p/3)}
+        # Invert: y^{(2-p)/2} = mu^{(2-p)/2} +/- s * mu^{(2-p)/2 - 1}
+        # => y = (mu^{(2-p)/2} +/- s * mu^{(2-p)/2 - 1})^{2/(2-p)}
         sign = 1.0 if upper else -1.0
-        exp_y = self._exp_y  # 1 - p/3
+        exp_y = self._exp_y  # (2-p)/2
         inner = mu ** exp_y + sign * s_arr * mu ** self._exp_mu
         # inner must be positive for real solution; clip at 0
         inner = np.maximum(0.0, inner)
-        # y = inner^{1/exp_y}
+        # y = inner^{1/exp_y} = inner^{2/(2-p)}
         bound = inner ** (1.0 / exp_y)
         if not upper:
             bound = np.maximum(0.0, bound)
