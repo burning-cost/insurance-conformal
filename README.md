@@ -4,6 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-BSD--3-blue)]()
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/insurance-conformal/blob/main/notebooks/quickstart.ipynb)
 
 Distribution-free prediction intervals for insurance GBM and GLM pricing models — for pricing actuaries who need uncertainty quantification that holds regardless of model specification, without the coverage failures that parametric intervals produce on heterogeneous motor books.
 
