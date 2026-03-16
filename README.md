@@ -176,7 +176,7 @@ fig = diag_tool.interval_width_distribution()
 | `raw` | `\|y - yhat\|` | Baseline only. Not appropriate for insurance data. |
 
 The score hierarchy for interval width (narrowest first, coverage identical):
-`pearson_weighted >= deviance >= anscombe > pearson > raw`
+`pearson_weighted <= deviance <= anscombe < pearson < raw`
 
 ---
 
@@ -210,7 +210,7 @@ Split conformal prediction provides the following guarantee for exchangeable dat
 P(y_test in [lower, upper]) >= 1 - alpha
 ```
 
-This is distribution-free - it holds regardless of the true data distribution, model misspecification, or covariate shift (as long as calibration and test data are exchangeable). The only assumption is that the calibration set is held out from model training.
+This is distribution-free — it holds regardless of the true data distribution or model misspecification. The core assumption is exchangeability: calibration and test observations must be drawn from the same distribution and be interchangeable in order. Temporal covariate shift — where the risk profile of test data differs from calibration data — violates this assumption and can degrade coverage in practice. Use temporal calibration splits (calibrate on the most recent accident year before the test period) to minimise the distribution gap. The `temporal_split` utility is provided for this purpose.
 
 "Exchangeable" roughly means "drawn from the same distribution in the same order". For insurance, this means you should not calibrate on year 5 and test on year 1. Use temporal splits.
 
@@ -279,6 +279,35 @@ from insurance_conformal.risk import (
 
 - Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., & Schuster, T. (2024). Conformal Risk Control. ICLR 2024. arXiv:2208.02814.
 - Selective CRC: arXiv:2512.12844 (2025).
+
+---
+
+## SCRReport
+
+`SCRReport` wraps a calibrated conformal predictor and produces per-risk 99.5% upper bounds suitable for internal stress-testing and model validation.
+
+> **Disclaimer**: SCRReport is an internal stress-testing tool. Solvency II SCR calculations for regulatory purposes require sign-off under an approved internal model or the standard formula. Do not use this output in regulatory returns without appropriate actuarial review, governance sign-off, and alignment with your firm's approved methodology.
+
+```python
+from insurance_conformal.scr import SCRReport
+
+scr = SCRReport(predictor=cp)
+scr_bounds = scr.solvency_capital_requirement(X_test, alpha=0.005)
+val_table = scr.coverage_validation_table(X_test, y_test)
+print(scr.to_markdown())
+```
+
+---
+
+## Limitations
+
+**Exchangeability assumption.** Split conformal requires calibration and test data to be exchangeable. Temporal covariate shift — changes in portfolio mix, inflation, or risk profile between calibration and test periods — weakens this assumption. Use temporal calibration splits and monitor coverage drift over time.
+
+**IBNR on recent accident years.** For severity and pure premium models, calibrating on the most recent accident year means calibrating on incomplete claims. IBNR (incurred but not reported) development causes non-conformity scores to be computed on understated y_cal values, producing intervals that are too narrow for open development periods. Recommend using only fully-developed accident years (typically 3+ years prior) for calibration, or applying a development factor to y_cal before calibration.
+
+**Marginal vs. conditional coverage.** The conformal guarantee is marginal: it holds on average across all observations. High-risk subgroups can still be systematically under-covered if the non-conformity score does not fully account for heteroscedasticity. Always check `coverage_by_decile()` after calibration.
+
+**Score choice matters.** The `raw` score produces valid but very wide intervals on insurance data. Use `pearson_weighted` for Tweedie/Poisson models. If you switch scores, recalibrate.
 
 ---
 
