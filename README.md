@@ -329,6 +329,58 @@ print(scr.to_markdown())
 
 ---
 
+## Benchmark: Conformal vs naive parametric intervals
+
+50,000 synthetic UK motor policies with a Gamma severity DGP (right-skewed, heteroscedastic). The shape parameter varies by risk level, producing more dispersion in the high-risk segment. Temporal 60/20/20 split: 30,000 train, 10,000 calibration, 10,000 test. The same Ridge regression baseline (log-link) is used for both methods. Target coverage: 90%.
+
+Run on Databricks serverless compute (2026-03-16, seed=42).
+
+**Naive parametric baseline** — global sigma estimated from log-scale calibration residuals, intervals constructed as yhat × exp(±1.645σ):
+
+| Decile | Avg predicted (£) | Coverage |
+|--------|------------------|----------|
+| 1 | 925 | 0.936 |
+| 2 | 1,132 | 0.903 |
+| 3 | 1,274 | 0.929 |
+| 4 | 1,401 | 0.922 |
+| 5 | 1,528 | 0.919 |
+| 6 | 1,658 | 0.914 |
+| 7 | 1,803 | 0.911 |
+| 8 | 1,982 | 0.919 |
+| 9 | 2,223 | 0.904 |
+| 10 | 2,731 | 0.917 |
+
+**Conformal (pearson_weighted score, tweedie_power=1.5):**
+
+| Decile | Coverage |
+|--------|----------|
+| 1–6 | 0.922–0.993 |
+| 7 | 0.878 |
+| 8 | 0.869 |
+| 9 | 0.820 |
+| 10 | 0.714 |
+
+**Summary:**
+
+| Metric | Naive parametric | Conformal (pearson_weighted) |
+|--------|-----------------|------------------------------|
+| Aggregate coverage (target: 90%) | 0.917 | 0.901 |
+| Worst-decile coverage | 0.917 | 0.714 |
+| Coverage gap at highest-risk decile | −1.7pp (above target) | −18.6pp (below target) |
+| Mean interval width | £6,445 | £4,675 |
+| Width vs raw conformal | n/a | −2.2% |
+| Distribution-free guarantee | No | Yes (marginal only) |
+
+Total benchmark time: 2.1s on Databricks serverless.
+
+### Key findings
+
+- In this scenario the naive parametric intervals achieve near-uniform coverage across all deciles (91.7% in the top decile vs 90% target), because the log-normal approximation happens to fit the DGP reasonably well in aggregate. This is the benchmark's null result: when model and DGP are reasonably well-matched, parametric intervals perform adequately.
+- The conformal pearson_weighted score undercovers the highest-risk decile at 71.4% — 18.6pp below the 90% target. The marginal coverage guarantee holds (90.1% in aggregate), but decile-level coverage can still fail badly. The pearson_weighted score divides non-conformity scores by yhat^0.75, which compresses scores for high-risk policies and effectively underestimates the quantile needed to cover them. The coverage guarantee is marginal, not conditional.
+- The interval width reduction is only 2.2% vs raw conformal — much smaller than the 15–30% cited in the literature. Width reduction depends heavily on the quality of the point forecast: a Ridge regression on log(y) with moderate predictive power will not produce strongly differential non-conformity scores, so the weighting gives limited benefit.
+
+**Practical implication:** use `pearson_weighted` with a well-calibrated GBM point forecast, not a linear model. The coverage guarantee is marginal by construction — if you need conditional coverage guarantees by risk segment, that requires a conditional conformal approach (not currently in this library). Run `benchmarks/benchmark.py` on your own data before relying on any particular score choice.
+
 ## Other Burning Cost libraries
 
 **Model building**
