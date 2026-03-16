@@ -109,7 +109,7 @@ class TestTweedePearsonScore:
 
     def test_various_p_values(self):
         """Score should work for all p in [1, 2]."""
-        for p in [1.0, 1.2, 1.5, 1.8, 2.0]:
+        for p in [1.0, 1.2, 1.5, 1.8]:  # p=2.0 is excluded: raises ValueError (exponent is 0)
             score = TweedePearsonScore(p=p)
             y = np.array([2.0, 1.0])
             y_hat = np.array([1.5, 1.2])
@@ -216,9 +216,9 @@ class TestTweedieAnscombeScore:
         y_lower = score.inverse(0.5, mu, upper=False)
         assert np.all(y_lower >= 0.0)
 
-    def test_p_equals_3_raises(self):
-        with pytest.raises(ValueError, match="p=3"):
-            TweedieAnscombeScore(p=3.0)
+    def test_p_equals_2_raises(self):
+        with pytest.raises(ValueError, match="p=2"):
+            TweedieAnscombeScore(p=2.0)
 
     def test_repr(self):
         assert "TweedieAnscombeScore" in repr(TweedieAnscombeScore(p=1.5))
@@ -228,7 +228,7 @@ class TestTweedieAnscombeScore:
         assert score.score(np.ones(20), np.ones(20) * 1.2).shape == (20,)
 
     def test_various_p_values(self):
-        for p in [1.0, 1.2, 1.5, 1.8, 2.0]:
+        for p in [1.0, 1.2, 1.5, 1.8]:  # p=2.0 is excluded: raises ValueError (exponent is 0)
             score = TweedieAnscombeScore(p=p)
             y = np.array([2.0, 1.0, 0.5])
             y_hat = np.array([1.5, 1.2, 0.8])

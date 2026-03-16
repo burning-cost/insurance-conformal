@@ -199,7 +199,7 @@ class TestMethodConsistency:
 
         assert q_bonf.shape == (2,)
         assert q_sid.shape == (2,)
-        assert t_lwc.shape == (2,)
+        assert t_gwc_vec.shape == (2,)
 
     def test_bonferroni_wider_than_gwc(self, simple_residuals_2d):
         # Bonferroni per-dimension intervals should generally be wider than GWC
