@@ -116,10 +116,19 @@ intervals = cp.predict_interval(X_test, alpha=0.10)
 # DataFrame with columns: lower, point, upper
 
 print(intervals.head())
-#       lower   point    upper
-# 0    0.0121  0.0845   0.3291
-# 1    0.0034  0.0231   0.0901
-# 2    0.1820  1.2742   4.9621
+# shape: (5, 3)
+# ┌───────┬────────────┬─────────────┐
+# │ lower ┆ point      ┆ upper       │
+# │ ---   ┆ ---        ┆ ---         │
+# │ f64   ┆ f64        ┆ f64         │
+# ╞═══════╪════════════╪═════════════╡
+# │ 0.0   ┆ 787.800176 ┆ 1629.240867 │
+# │ 0.0   ┆ 652.927728 ┆ 1383.831645 │
+# │ 0.0   ┆ 741.107597 ┆ 1544.860221 │
+# │ 0.0   ┆ 763.402341 ┆ 1585.222083 │
+# │ 0.0   ┆ 734.043618 ┆ 1532.043552 │
+# └───────┴────────────┴─────────────┘
+# Note: lower=0.0 is expected — insurance losses are non-negative and the predictor clips at zero.
 ```
 
 ## Worked Example
