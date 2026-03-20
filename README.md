@@ -310,6 +310,16 @@ print(scr.to_markdown())
 
 ---
 
+## Internal Model Validation
+
+The primary use case for this library is pricing uncertainty — but conformal prediction has a secondary application in internal model validation that is worth knowing about.
+
+PRA SS1/23 (model risk management, effective May 2023) requires firms to validate that models perform as stated, including checking that stated confidence levels are actually achieved in out-of-sample data. For reserve and capital models that produce prediction intervals — whether under Solvency II internal model approval or as part of ORSA stress testing — the question "does this model's stated 90% interval actually contain the true outcome 90% of the time?" is a model validation question, not a pricing question.
+
+Conformal prediction answers that question without assuming a specific loss distribution. `cp.coverage_by_decile()` and `scr.coverage_validation_table()` produce the empirical coverage evidence that a model validation function needs to challenge whether a model's stated confidence levels hold in practice. This is a distribution-free check: if your internal capital model claims its 99.5th percentile bound is £X, you can use historical out-of-sample data to test whether that claim holds — and document the result for your SS1/23 model validation pack. We are not claiming this replaces the statistical framework required for Solvency II internal model approval; it is one empirical validation tool among several.
+
+---
+
 ## Limitations
 
 **Exchangeability assumption.** Split conformal requires calibration and test data to be exchangeable. Temporal covariate shift — changes in portfolio mix, inflation, or risk profile between calibration and test periods — weakens this assumption. Use temporal calibration splits and monitor coverage drift over time.
