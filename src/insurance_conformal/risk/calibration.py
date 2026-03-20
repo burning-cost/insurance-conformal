@@ -216,3 +216,82 @@ class MonotoneLambdaSearch:
             losses, self.lambda_grid, alpha=alpha, B=B
         )
         return lambda_hat, risk_curve
+
+
+def build_pred_set_matrix(
+    y_cal: np.ndarray,
+    lambda_2_grid: np.ndarray,
+    loss_fn,
+    B: float = 1.0,
+) -> np.ndarray:
+    """
+    Build the prediction set loss matrix for SCRC second-stage calibration.
+
+    For each lambda_2 value in the grid, compute the per-observation loss.
+    The result is a 2D array where row j corresponds to lambda_2_grid[j]
+    and column i corresponds to calibration observation i.
+
+    Shape convention: (len(lambda_2_grid), n_cal). This layout means
+    pred_sets_cal[j] gives the loss vector at threshold lambda_2_grid[j],
+    which is what SelectiveConformalRC expects for the second-stage search.
+
+    The loss function must be non-increasing in lambda_2: larger lambda_2
+    means a larger or more conservative prediction set, which should produce
+    lower loss. Common choice: coverage_loss with quantile threshold.
+
+    Parameters
+    ----------
+    y_cal : np.ndarray, shape (n,)
+        Calibration outcomes.
+    lambda_2_grid : np.ndarray, shape (m,)
+        Grid of second-stage thresholds (e.g. quantile levels). Must be
+        sorted in increasing order (increasing = more conservative = lower loss).
+    loss_fn : callable
+        Signature: loss_fn(y, lambda_2) -> np.ndarray of shape (n,).
+        Loss for each calibration observation at a given lambda_2 level.
+        Example: lambda y, lam: (y > lam).astype(float) for binary loss.
+    B : float, default 1.0
+        Upper bound on the loss. Used for validation only — we check that
+        all losses are in [0, B].
+
+    Returns
+    -------
+    np.ndarray, shape (m, n)
+        pred_sets_cal[j, i] = loss for observation i at lambda_2_grid[j].
+
+    Raises
+    ------
+    ValueError
+        If computed losses fall outside [0, B].
+
+    Examples
+    --------
+    >>> y = np.array([1000, 5000, 2000, 8000])
+    >>> lambdas = np.array([3000, 5000, 7000])
+    >>> def loss_fn(y, lam): return (y > lam).astype(float)
+    >>> build_pred_set_matrix(y, lambdas, loss_fn)
+    array([[1., 1., 0., 1.],
+           [1., 0., 0., 1.],
+           [0., 0., 0., 1.]])
+    """
+    y_cal = np.asarray(y_cal, dtype=float)
+    lambda_2_grid = np.asarray(lambda_2_grid, dtype=float)
+    n = len(y_cal)
+    m = len(lambda_2_grid)
+
+    pred_sets = np.empty((m, n), dtype=float)
+
+    for j, lam in enumerate(lambda_2_grid):
+        row = np.asarray(loss_fn(y_cal, lam), dtype=float)
+        if row.shape != (n,):
+            raise ValueError(
+                f"loss_fn must return shape ({n},) but got {row.shape} at lambda_2={lam}"
+            )
+        if np.any(row < 0) or np.any(row > B):
+            raise ValueError(
+                f"loss_fn returned values outside [0, B={B}] at lambda_2={lam}. "
+                f"Range: [{row.min():.4f}, {row.max():.4f}]"
+            )
+        pred_sets[j] = row
+
+    return pred_sets

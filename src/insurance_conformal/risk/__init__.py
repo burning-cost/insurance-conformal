@@ -18,7 +18,7 @@ This bounds expected shortfall from underpriced policies to alpha% of premium
 income. No parametric assumptions. Finite-sample valid. Calibrate on one year's
 claims, apply to next year's book.
 
-Three controllers, each for a different use case:
+Four controllers, each for a different use case:
 
 **PremiumSufficiencyController** — underpricing risk::
 
@@ -37,7 +37,7 @@ Three controllers, each for a different use case:
     iwc.calibrate_from_widths(widths_at_each_lambda)
     print(iwc.lambda_hat_)  # optimal quantile level
 
-**SelectiveRiskController** — underwriting acceptance/rejection::
+**SelectiveRiskController** — underwriting acceptance/rejection (simple)::
 
     from insurance_conformal.risk import SelectiveRiskController
 
@@ -48,20 +48,39 @@ Three controllers, each for a different use case:
     src.calibrate(y_cal, scores_cal)
     decisions = src.predict(scores_new)
 
+**SelectiveConformalRC** — two-stage selective conformal risk control (Xu et al. 2025)::
+
+    from insurance_conformal.risk import SelectiveConformalRC
+    from insurance_conformal.risk.selection_scores import selection_score_msp
+    from insurance_conformal.risk.calibration import build_pred_set_matrix
+
+    scores_cal = selection_score_msp(model.predict_proba(X_cal))
+    pred_sets = build_pred_set_matrix(y_cal, lambda_2_grid, loss_fn)
+
+    scrc = SelectiveConformalRC(alpha=0.10, xi=0.80)
+    scrc.calibrate(y_cal, scores_cal, pred_sets, lambda_2_grid=lambda_2_grid)
+    decisions = scrc.predict(scores_new)
+
 References
 ----------
 Angelopoulos et al. (2024). Conformal Risk Control. ICLR 2024.
 arXiv:2208.02814. https://doi.org/10.48550/arXiv.2208.02814
 
-Selective CRC: arXiv:2512.12844 (2025).
+Xu, Guo & Wei (2025). Selective Conformal Risk Control. arXiv:2512.12844.
 """
 
 from insurance_conformal.risk.premium_sufficiency import PremiumSufficiencyController
 from insurance_conformal.risk.interval_width import IntervalWidthController
-from insurance_conformal.risk.selective import SelectiveRiskController
+from insurance_conformal.risk.selective import (
+    SelectiveRiskController,
+    SelectiveConformalRC,
+    InfeasibleSCRCError,
+    SCRCResult,
+)
 from insurance_conformal.risk.calibration import (
     conformal_risk_calibration,
     MonotoneLambdaSearch,
+    build_pred_set_matrix,
 )
 from insurance_conformal.risk.losses import (
     shortfall_loss,
@@ -76,15 +95,26 @@ from insurance_conformal.risk.reporting import (
     solvency_ii_model_error_note,
     risk_curve_dataframe,
 )
+from insurance_conformal.risk.selection_scores import (
+    selection_score_msp,
+    selection_score_margin,
+    selection_score_entropy,
+    selection_score_energy,
+)
 
 __all__ = [
     # Controllers
     "PremiumSufficiencyController",
     "IntervalWidthController",
     "SelectiveRiskController",
+    "SelectiveConformalRC",
+    # SCRC supporting types
+    "InfeasibleSCRCError",
+    "SCRCResult",
     # Core algorithm
     "conformal_risk_calibration",
     "MonotoneLambdaSearch",
+    "build_pred_set_matrix",
     # Loss functions
     "shortfall_loss",
     "scaled_shortfall_loss",
@@ -96,4 +126,9 @@ __all__ = [
     "premium_sufficiency_report",
     "solvency_ii_model_error_note",
     "risk_curve_dataframe",
+    # Selection scores
+    "selection_score_msp",
+    "selection_score_margin",
+    "selection_score_entropy",
+    "selection_score_energy",
 ]
