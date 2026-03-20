@@ -576,3 +576,7 @@ class TwoStageLWConformal:
             f"TwoStageLWConformal(mean={mean_name}, spread={spread_name}, "
             f"p={self.p}, n_cal={self._n_cal})"
         )
+
+# Backward-compatible alias: TweedePearsonScore had a typo (missing 'i').
+# The correct spelling is TweediePearsonScore. Both names are exported.
+TweediePearsonScore = TweedePearsonScore

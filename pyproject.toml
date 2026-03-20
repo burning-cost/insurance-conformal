@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.5.0"
+version = "0.5.1"
 description = "Distribution-free prediction intervals for insurance GBM and GLM pricing models"
 readme = "README.md"
 license = { text = "MIT" }
@@ -48,13 +48,15 @@ dependencies = [
 
 [project.optional-dependencies]
 catboost = ["catboost>=1.2"]
+lightgbm = ["lightgbm>=4.0"]
 plot = ["matplotlib>=3.6"]
-all = ["catboost>=1.2", "matplotlib>=3.6"]
+all = ["catboost>=1.2", "lightgbm>=4.0", "matplotlib>=3.6"]
 dev = [
     "pytest>=7.0",
     "pyarrow>=12.0",
     "pytest-cov>=4.0",
     "catboost>=1.2",
+    "lightgbm>=4.0",
     "matplotlib>=3.6",
     "scikit-learn>=1.3",
     # Security floor constraint (transitive via matplotlib)

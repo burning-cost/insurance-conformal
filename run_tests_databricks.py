@@ -75,11 +75,11 @@ import subprocess, sys, os, shutil
 
 log = []
 
-# Install deps
+# Install deps including catboost and lightgbm for backend tests
 r = subprocess.run(
     [sys.executable, "-m", "pip", "install",
      "pytest", "pytest-cov", "scipy", "polars", "numpy", "pandas",
-     "pyarrow", "scikit-learn"],
+     "pyarrow", "scikit-learn", "catboost", "lightgbm"],
     capture_output=True, text=True
 )
 log.append(f"DEP_RC={r.returncode}")
@@ -98,13 +98,15 @@ log.append("copytree OK")
 src_path = f"{TMP}/src"
 env = {**os.environ, "PYTHONPATH": src_path, "PYTHONDONTWRITEBYTECODE": "1"}
 
-# Quick sanity check — verify all three subpackages importable
+# Quick sanity check — verify all subpackages importable including new features
 r2 = subprocess.run(
     [sys.executable, "-c",
      f"import sys; sys.path.insert(0, \\"{src_path}\\"); "
      "import insurance_conformal; print(insurance_conformal.__version__); "
      "from insurance_conformal.risk import PremiumSufficiencyController; print(\\'risk OK\\'); "
      "from insurance_conformal.claims import HongConformal; print(\\'claims OK\\'); "
+     "from insurance_conformal.claims import FrequencySeverityConformal; print(\\'freqsev OK\\'); "
+     "from insurance_conformal.claims import TweediePearsonScore; print(\\'alias OK\\'); "
      "from insurance_conformal.multivariate import JointConformalPredictor; print(\\'multivariate OK\\')"],
     capture_output=True, text=True, env=env
 )
@@ -146,7 +148,7 @@ w.workspace.import_(
 print(f"Notebook uploaded to {nb_path}")
 
 run = w.jobs.submit(
-    run_name="insurance-conformal-v040-tests",
+    run_name="insurance-conformal-v051-tests",
     tasks=[
         Task(
             task_key="run_tests",

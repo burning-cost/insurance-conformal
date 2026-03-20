@@ -7,7 +7,7 @@ variance may differ from what the Tweedie variance function predicts — either
 because the model is misspecified or because there are additional covariates
 that explain the residual variance.
 
-This module fits a secondary CatBoost model on |Pearson residuals| ~ X.
+This module fits a secondary model on |Pearson residuals| ~ X.
 The secondary model learns rho_hat(x) — how large the residuals tend to be
 for observations with features x, regardless of what yhat says. Dividing by
 rho_hat produces a more homogeneous score distribution, narrowing intervals
@@ -39,15 +39,17 @@ class LocallyWeightedConformal:
     Two-stage conformal prediction with a secondary spread model.
 
     Stage 1: fit the base insurance model f_hat (passed in, already fitted).
-    Stage 2: fit a secondary CatBoost model rho_hat on |Pearson residuals|
-             from the training set.
+    Stage 2: fit a secondary model rho_hat on |Pearson residuals|
+             from the training set. Supports CatBoost (default) or LightGBM.
     Calibration: compute locally-weighted scores on the calibration set.
     Prediction: use rho_hat(x) to produce adaptive-width intervals.
 
-    The key design choice: use CatBoost for the secondary model, not a GLM.
+    The key design choice: use a GBM for the secondary model, not a GLM.
     The residual spread may be a complex function of features — a GBM captures
     this better than a parametric spread model while remaining interpretable
-    via SHAP. CatBoost is consistent with the rest of our stack.
+    via SHAP. CatBoost is the default, consistent with the rest of our stack.
+    LightGBM is available as an alternative (the Manna et al. 2507.06921 paper
+    uses LightGBM specifically).
 
     Parameters
     ----------
@@ -56,19 +58,26 @@ class LocallyWeightedConformal:
     tweedie_power : float, default 1.5
         Tweedie variance power p. Used in the Pearson score denominator
         yhat^(p/2). Set p=1.0 for Poisson, p=2.0 for Gamma.
+    backend : str, default "catboost"
+        Secondary spread model backend. Either "catboost" or "lightgbm".
+        "catboost" requires the catboost package.
+        "lightgbm" requires the lightgbm package.
     spread_model_params : dict, optional
-        CatBoost parameters for the secondary spread model. Defaults to
-        a sensible set: 300 trees, learning_rate=0.05, RMSE loss.
+        CatBoost parameters for the secondary spread model when backend="catboost".
+        Defaults to a sensible set: 300 trees, learning_rate=0.05, RMSE loss.
         Override to tune the secondary model — but be careful not to
         overfit it, since overfitting rho_hat will shrink calibration scores
         artificially and hurt coverage.
+    lgbm_spread_model_params : dict, optional
+        LightGBM parameters for the secondary spread model when backend="lightgbm".
+        Defaults to a sensible set: 300 trees, learning_rate=0.05, regression loss.
     clip_spread_at : float, default 0.01
         Minimum value for rho_hat. Prevents division-by-zero when the
         secondary model predicts near-zero spread.
 
     Attributes
     ----------
-    spread_model_ : CatBoostRegressor
+    spread_model_ : fitted model
         Fitted secondary spread model. Available after fit().
     cal_scores_ : np.ndarray
         Locally-weighted non-conformity scores from calibration set.
@@ -83,20 +92,35 @@ class LocallyWeightedConformal:
     >>> lw.fit(X_train, y_train)
     >>> lw.calibrate(X_cal, y_cal)
     >>> intervals = lw.predict_interval(X_test, alpha=0.10)
+
+    LightGBM backend:
+
+    >>> lw = LocallyWeightedConformal(
+    ...     model=fitted_model, tweedie_power=1.5, backend="lightgbm"
+    ... )
+    >>> lw.fit(X_train, y_train)
     """
 
     def __init__(
         self,
         model: Any,
         tweedie_power: float = 1.5,
+        backend: str = "catboost",
         spread_model_params: Optional[dict] = None,
+        lgbm_spread_model_params: Optional[dict] = None,
         clip_spread_at: float = 0.01,
     ) -> None:
+        if backend not in ("catboost", "lightgbm"):
+            raise ValueError(
+                f"backend must be 'catboost' or 'lightgbm', got {backend!r}"
+            )
         self.model = model
         self.tweedie_power = float(tweedie_power)
+        self.backend = backend
         self.clip_spread_at = float(clip_spread_at)
 
-        default_params = {
+        # CatBoost defaults
+        default_catboost_params = {
             "iterations": 300,
             "learning_rate": 0.05,
             "depth": 4,
@@ -105,8 +129,21 @@ class LocallyWeightedConformal:
             "verbose": False,
         }
         if spread_model_params is not None:
-            default_params.update(spread_model_params)
-        self.spread_model_params = default_params
+            default_catboost_params.update(spread_model_params)
+        self.spread_model_params = default_catboost_params
+
+        # LightGBM defaults
+        default_lgbm_params = {
+            "n_estimators": 300,
+            "learning_rate": 0.05,
+            "num_leaves": 15,
+            "objective": "regression",
+            "random_state": 42,
+            "verbose": -1,
+        }
+        if lgbm_spread_model_params is not None:
+            default_lgbm_params.update(lgbm_spread_model_params)
+        self.lgbm_spread_model_params = default_lgbm_params
 
         self.spread_model_: Any = None
         self.cal_scores_: Optional[np.ndarray] = None
@@ -136,14 +173,6 @@ class LocallyWeightedConformal:
         -------
         self
         """
-        try:
-            from catboost import CatBoostRegressor
-        except ImportError as e:
-            raise ImportError(
-                "LocallyWeightedConformal requires CatBoost. "
-                "Install with: uv pip install 'insurance-conformal[catboost]'"
-            ) from e
-
         y = as_numpy(y_train)
         yhat = self._base_predict(X_train)
 
@@ -151,10 +180,29 @@ class LocallyWeightedConformal:
         yhat_clipped = np.clip(yhat, 1e-8, None)
         pearson_resid = np.abs(y - yhat) / (yhat_clipped ** (self.tweedie_power / 2.0))
 
-        # Fit secondary model on |Pearson residuals|
         X_np = self._to_numpy(X_train)
-        self.spread_model_ = CatBoostRegressor(**self.spread_model_params)
-        self.spread_model_.fit(X_np, pearson_resid)
+
+        if self.backend == "catboost":
+            try:
+                from catboost import CatBoostRegressor
+            except ImportError as e:
+                raise ImportError(
+                    "LocallyWeightedConformal with backend='catboost' requires CatBoost. "
+                    "Install with: uv pip install 'insurance-conformal[catboost]'"
+                ) from e
+            self.spread_model_ = CatBoostRegressor(**self.spread_model_params)
+            self.spread_model_.fit(X_np, pearson_resid)
+
+        elif self.backend == "lightgbm":
+            try:
+                from lightgbm import LGBMRegressor
+            except ImportError as e:
+                raise ImportError(
+                    "LocallyWeightedConformal with backend='lightgbm' requires LightGBM. "
+                    "Install with: uv pip install 'insurance-conformal[lightgbm]'"
+                ) from e
+            self.spread_model_ = LGBMRegressor(**self.lgbm_spread_model_params)
+            self.spread_model_.fit(X_np, pearson_resid)
 
         return self
 
@@ -344,7 +392,7 @@ class LocallyWeightedConformal:
         return np.clip(rho_raw, self.clip_spread_at, None)
 
     def _to_numpy(self, X: Any) -> np.ndarray:
-        """Convert DataFrame inputs to numpy for CatBoost/sklearn."""
+        """Convert DataFrame inputs to numpy."""
         import pandas as pd
         if isinstance(X, pl.DataFrame):
             return X.to_numpy()
@@ -380,5 +428,6 @@ class LocallyWeightedConformal:
         return (
             f"LocallyWeightedConformal("
             f"tweedie_power={self.tweedie_power}, "
+            f"backend={self.backend!r}, "
             f"{status})"
         )

@@ -15,6 +15,10 @@ Three methodological pillars:
    variance function V(mu) = mu^p, plus a two-stage locally weighted split conformal
    method that auto-fits a CatBoost spread model. (Manna et al. 2025 ASMBI asmb.70045)
 
+4. **Frequency-severity conformal** — conformal intervals for frequency-severity
+   models. Uses the composed prediction psi_hat(x, mu_hat(x)) for calibration,
+   preserving exchangeability. (Graziadei et al. 2023 arXiv:2307.13124)
+
 Solvency II hook: alpha=0.005 gives a finite-sample valid 99.5% upper bound on
 claims — directly interpretable as an SCR capital requirement under Solvency II
 Article 101 / UK Solvency UK (PRA PS9/24).
@@ -42,10 +46,12 @@ Quick start
 from insurance_conformal.claims.hong import HongConformal, HongTransformConformal
 from insurance_conformal.claims.tweedie import (
     TweedePearsonScore,
+    TweediePearsonScore,
     TweedieAnscombeScore,
     TweedieDevianceScore,
     TwoStageLWConformal,
 )
+from insurance_conformal.claims.freqsev import FrequencySeverityConformal
 from insurance_conformal.claims.scr import SCRReport
 from insurance_conformal.claims.diagnostics import (
     calibration_plot,
@@ -60,9 +66,12 @@ __all__ = [
     "HongTransformConformal",
     # tweedie
     "TweedePearsonScore",
+    "TweediePearsonScore",  # correct spelling alias
     "TweedieDevianceScore",
     "TweedieAnscombeScore",
     "TwoStageLWConformal",
+    # frequency-severity
+    "FrequencySeverityConformal",
     # scr
     "SCRReport",
     # diagnostics

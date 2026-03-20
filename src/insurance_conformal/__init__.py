@@ -34,6 +34,13 @@ v0.4.0 adds:
   See insurance_conformal.multivariate for JointConformalPredictor,
   SolvencyCapitalEstimator, and supporting calibration/diagnostic tools.
 
+v0.5.0 adds SelectiveConformalRC (risk-controlled selective prediction).
+
+v0.5.1 adds:
+- LightGBM backend for LocallyWeightedConformal
+- FrequencySeverityConformal (Graziadei et al. 2307.13124)
+- TweediePearsonScore alias (corrects TweedePearsonScore typo)
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 and Fan & Sesia (2025) arXiv:2512.15383.
@@ -141,4 +148,4 @@ __all__ = [
     # v0.4: multivariate subpackage (import from insurance_conformal.multivariate)
 ]
 
-__version__ = "0.4.1"
+__version__ = "0.5.1"

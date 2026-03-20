@@ -48,7 +48,7 @@ For Tweedie/Poisson models, Var(Y) ~ mu^p. The correct non-conformity score is t
 score(y, yhat) = |y - yhat| / yhat^(p/2)
 ```
 
-This accounts for the inherent heteroscedasticity of insurance claims. The result: ~30% narrower intervals with identical coverage guarantees. Based on Manna et al. (2025) and [arXiv 2507.06921](https://arxiv.org/abs/2507.06921).
+This accounts for the inherent heteroscedasticity of insurance claims. The result: ~30% narrower intervals with identical coverage guarantees. Based on Manna et al. (2025, preprint) and [arXiv 2507.06921](https://arxiv.org/abs/2507.06921).
 
 ---
 
@@ -189,6 +189,8 @@ fig = diag_tool.interval_width_distribution()
 The score hierarchy for interval width (narrowest first, coverage identical):
 `pearson_weighted <= deviance <= anscombe < pearson < raw`
 
+*Note: ordering is approximate and depends on Tweedie power. At p=1 (Poisson), `pearson` and `pearson_weighted` converge. At p=2 (Gamma), `deviance` and `pearson` are nearly equivalent. Treat the hierarchy as a guide for p in the range 1.0–2.0.*
+
 ---
 
 ## Temporal calibration
@@ -223,9 +225,13 @@ P(y_test in [lower, upper]) >= 1 - alpha
 
 This is distribution-free — it holds regardless of the true data distribution or model misspecification. The core assumption is exchangeability: calibration and test observations must be drawn from the same distribution and be interchangeable in order. Temporal covariate shift — where the risk profile of test data differs from calibration data — violates this assumption and can degrade coverage in practice. Use temporal calibration splits (calibrate on the most recent accident year before the test period) to minimise the distribution gap. The `temporal_split` utility is provided for this purpose.
 
-"Exchangeable" roughly means "drawn from the same distribution in the same order". For insurance, this means you should not calibrate on year 5 and test on year 1. Use temporal splits.
+"Exchangeable" means the joint distribution of calibration and test data is invariant to the order of observations — roughly, no systematic distributional shift between calibration and test. For insurance, this means you should not calibrate on year 5 and test on year 1. Use temporal splits.
 
 ---
+
+## Calibration set size
+
+For stable interval widths, target n_cal >= 2,000. The coverage guarantee holds with smaller calibration sets — split conformal is valid for any n_cal >= 1 — but with n_cal < 500 the quantile estimate has high variance and intervals will be materially wider and more variable than at larger sizes. With n_cal = 100, the interval width fluctuates by 20-30% across random seeds on realistic insurance data. Pricing teams working with recent 6-month calibration windows on thin books should check the `cp.summary()` output for the quantile stability diagnostics.
 
 ## Design choices
 
@@ -334,7 +340,7 @@ Conformal prediction answers that question without assuming a specific loss dist
 
 ## References
 
-- Manna, S. et al. (2025). "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921*.
+- Manna, S. et al. (2025). "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921* (preprint; not yet peer-reviewed as of March 2026).
 - Angelopoulos, A. N., & Bates, S. (2023). "Conformal prediction: A gentle introduction." *Foundations and Trends in Machine Learning*, 16(4), 494-591.
 - Vovk, V., Gammerman, A., & Shafer, G. (2005). *Algorithmic learning in a random world*. Springer.
 
