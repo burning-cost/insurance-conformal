@@ -66,7 +66,10 @@ uv add insurance-conformal
 # With CatBoost support:
 uv add "insurance-conformal[catboost]"
 
-# With plotting:
+# With LightGBM support:
+uv add "insurance-conformal[lightgbm]"
+
+# With everything (CatBoost, LightGBM, plotting):
 uv add "insurance-conformal[all]"
 ```
 
@@ -239,6 +242,8 @@ For stable interval widths, target n_cal >= 2,000. The coverage guarantee holds 
 
 **No MAPIE dependency.** MAPIE is excellent but it does not expose the insurance-specific scores implemented here. The split conformal algorithm is simple enough to own: 20 lines of code for `conformal_quantile()` plus the score functions.
 
+**LightGBM or CatBoost for the spread model.** `LocallyWeightedConformal` now supports both. CatBoost is the default; pass `backend="lightgbm"` to use LightGBM instead (requires `uv add "insurance-conformal[lightgbm]"`). The Manna et al. arXiv:2507.06921 paper originally used LightGBM, so this option closes that gap. Both backends take the same `spread_model_params` override. There is no material coverage difference between the two — pick whichever is already in your stack.
+
 **Lower bound clipped at 0.** Insurance losses are non-negative. Prediction intervals with negative lower bounds are nonsensical. We clip at 0 unconditionally.
 
 **Auto-detection of Tweedie power.** For CatBoost, the power parameter is read from the loss function string. For sklearn `TweedieRegressor`, from `model.power`. If detection fails, we warn and default to p=1.5. Pass `tweedie_power=` explicitly if you know the correct value.
@@ -296,6 +301,41 @@ from insurance_conformal.risk import (
 
 - Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., & Schuster, T. (2024). Conformal Risk Control. ICLR 2024. arXiv:2208.02814.
 - Selective CRC: arXiv:2512.12844 (2025).
+
+---
+
+## FrequencySeverityConformal
+
+**New in v0.5.1.** Conformal prediction intervals for frequency-severity insurance models, based on Graziadei et al. (arXiv:2307.13124). Import from `insurance_conformal.claims`.
+
+The frequency-severity decomposition is standard in non-life pricing: total loss = E[frequency] × E[severity | claim]. The conformal subtlety is what to feed into the severity model at calibration time. Using the *observed* claim count would create a distributional mismatch between calibration scores and test scores, breaking the coverage guarantee. The correct approach — as established by Graziadei et al. — is to feed the *predicted* frequency from the frequency model into the severity model at both calibration and test time. The resulting conformity scores are exchangeable with the test-time prediction, so the coverage guarantee holds.
+
+```python
+from sklearn.linear_model import PoissonRegressor, GammaRegressor
+from insurance_conformal.claims import FrequencySeverityConformal
+
+fs = FrequencySeverityConformal(
+    freq_model=PoissonRegressor(),
+    sev_model=GammaRegressor(),
+    # spread_model defaults to CatBoostRegressor if not specified
+)
+
+# d_train = observed claim counts; y_train = observed aggregate losses
+fs.fit(X_train, d_train, y_train)
+
+# d_cal is passed for validation only; scores use mu_hat(x), not d_cal
+fs.calibrate(X_cal, d_cal, y_cal)
+
+# 90% prediction intervals
+intervals = fs.predict_interval(X_test, alpha=0.10)
+# DataFrame with columns: lower, point, upper
+```
+
+The variability model `sigma_hat` is fitted on training residuals `|y_i - psi_hat(x_i, d_i)|` for observed-claim observations, analogous to the spread model in `LocallyWeightedConformal`. Pass `spread_model=` to override the default CatBoost variability model.
+
+Coverage guarantee: `P(Y in C(X))` in `[1-alpha, 1-alpha + 1/(n_cal+1)]` — the same finite-sample valid guarantee as standard split conformal, provided calibration and test data are exchangeable.
+
+**Reference:** Graziadei, H., Janett, C., Embrechts, P. & Bucher, A. (2023). Conformal Prediction for Insurance Data. arXiv:2307.13124.
 
 ---
 
