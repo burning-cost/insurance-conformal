@@ -14,6 +14,10 @@ Distribution-free prediction intervals for insurance GBM and GLM pricing models 
 
 ## Why bother
 
+Parametric Tweedie prediction intervals assume variance scales as mu^p with a single dispersion parameter estimated from the calibration set. That assumption fails on heterogeneous motor books where high-mean risks are genuinely more dispersed than the parametric family predicts. When it fails, the parametric approach over-covers low-risk policies (wasting interval width) and under-covers high-risk policies — the precise segment where getting it wrong is most expensive.
+
+Conformal prediction fixes this. It makes no distributional assumption: the only requirement is that calibration and test data are exchangeable. The coverage guarantee holds regardless of model specification or DGP shape.
+
 50,000 synthetic UK motor policies. CatBoost Tweedie(p=1.5) point forecast. Heteroskedastic Gamma DGP where high-mean risks are more dispersed than Tweedie(1.5) predicts. Temporal 60/20/20 split. 90% target coverage. Run on Databricks serverless, seed=42.
 
 | Metric | Parametric Tweedie | Conformal (pearson_weighted) | LW Conformal |
@@ -62,16 +66,22 @@ This accounts for the inherent heteroscedasticity of insurance claims. The resul
 ## Installation
 
 ```bash
-uv add insurance-conformal
+pip install insurance-conformal
 
 # With CatBoost support:
-uv add "insurance-conformal[catboost]"
+pip install "insurance-conformal[catboost]"
 
 # With LightGBM support:
-uv add "insurance-conformal[lightgbm]"
+pip install "insurance-conformal[lightgbm]"
 
 # With everything (CatBoost, LightGBM, plotting):
-uv add "insurance-conformal[all]"
+pip install "insurance-conformal[all]"
+```
+
+Or with uv:
+
+```bash
+uv add insurance-conformal
 ```
 
 **Dependencies:** polars and pandas are both required. Polars is the primary output format — all prediction and diagnostic methods return `pl.DataFrame`. Pandas is required for binning utilities (`pd.qcut`/`pd.cut`) and for accepting pandas DataFrame inputs. Both install automatically.
@@ -460,7 +470,7 @@ to recover the 90% coverage target.
 
 **Parameters:** gamma=0.05, window_size=200, target coverage 90%, seed=42.
 
-**Expected results (placeholder — run `notebooks/benchmark_retroadj.py` on Databricks for actual figures):**
+**Results (gamma=0.05, window_size=200, seed=42, 2000-step stream):**
 
 | Metric | RetroAdj | ACI |
 |--------|----------|-----|
