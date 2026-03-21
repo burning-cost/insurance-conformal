@@ -41,9 +41,19 @@ v0.5.1 adds:
 - FrequencySeverityConformal (Graziadei et al. 2307.13124)
 - TweediePearsonScore alias (corrects TweedePearsonScore typo)
 
+v0.6.0 adds:
+- RetroAdj: Online Conformal Inference with Retrospective Adjustment (Jun & Ohn 2025,
+  arXiv:2511.04275). Jackknife+ intervals over a KRR base model with rank-one matrix
+  updates that retroactively correct all leave-one-out residuals in the sliding window
+  at each step. Recovers from abrupt distribution shifts (UK motor +30% inflation,
+  Ogden rate changes, CAT events) within 1-3 steps versus ~200 steps for ACI at
+  gamma=0.005. Supports ACI and SFOGD alpha updates, symmetric and asymmetric intervals,
+  residual-only mode for external GLM/GBM models, and periodic numerical reset.
+  See insurance_conformal.retro_adj for RetroAdj.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
-and Fan & Sesia (2025) arXiv:2512.15383.
+Fan & Sesia (2025) arXiv:2512.15383, and Jun & Ohn (2025) arXiv:2511.04275.
 
 Example usage::
 
@@ -104,6 +114,20 @@ For joint frequency/severity conformal prediction::
     )
     predictor.calibrate(X_cal, Y_cal)
     joint_set = predictor.predict(X_test)
+
+For online conformal with retrospective adjustment (distribution shift)::
+
+    from insurance_conformal import RetroAdj
+
+    model = RetroAdj(bandwidth=1.0, lambda_reg=0.1, window_size=250)
+    model.fit(y_train, X_train)
+    lower, upper = model.predict_interval(y_test, X_test, alpha=0.10)
+    # Or residual-only mode for GLM/GBM residuals:
+    resid_train = y_train - glm.predict(X_train)
+    resid_test  = y_test  - glm.predict(X_test)
+    model2 = RetroAdj(window_size=250)
+    model2.fit(resid_train)
+    lower_r, upper_r = model2.predict_interval(resid_test, alpha=0.10)
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -124,6 +148,7 @@ from insurance_conformal.diagnostics_ext import (
     subgroup_coverage,
     width_efficiency_comparison,
 )
+from insurance_conformal.retro_adj import RetroAdj
 
 __all__ = [
     # Core (v0.1)
@@ -146,6 +171,8 @@ __all__ = [
     # v0.3: risk subpackage (import from insurance_conformal.risk)
     # v0.4: claims subpackage (import from insurance_conformal.claims)
     # v0.4: multivariate subpackage (import from insurance_conformal.multivariate)
+    # v0.6 additions
+    "RetroAdj",
 ]
 
-__version__ = "0.5.1"
+__version__ = "0.6.0"

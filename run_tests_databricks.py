@@ -107,7 +107,8 @@ r2 = subprocess.run(
      "from insurance_conformal.claims import HongConformal; print(\\'claims OK\\'); "
      "from insurance_conformal.claims import FrequencySeverityConformal; print(\\'freqsev OK\\'); "
      "from insurance_conformal.claims import TweediePearsonScore; print(\\'alias OK\\'); "
-     "from insurance_conformal.multivariate import JointConformalPredictor; print(\\'multivariate OK\\')"],
+     "from insurance_conformal.multivariate import JointConformalPredictor; print(\\'multivariate OK\\'); "
+     "from insurance_conformal import RetroAdj; print(\\'retro_adj OK\\')"],
     capture_output=True, text=True, env=env
 )
 log.append(f"IMPORT_RC={r2.returncode}")
@@ -148,7 +149,7 @@ w.workspace.import_(
 print(f"Notebook uploaded to {nb_path}")
 
 run = w.jobs.submit(
-    run_name="insurance-conformal-v051-tests",
+    run_name="insurance-conformal-v060-tests",
     tasks=[
         Task(
             task_key="run_tests",

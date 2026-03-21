@@ -367,6 +367,82 @@ Conformal prediction answers that question without assuming a specific loss dist
 
 ---
 
+
+## RetroAdj: Online Conformal with Retrospective Adjustment
+
+Standard conformal prediction with a static calibration set handles exchangeable data well, but insurance books are not static. Mid-year claims inflation (UK motor: +30% in 2021-2022), Ogden rate changes, and CAT events all create abrupt distributional shifts. ACI (Adaptive Conformal Inference) adapts by nudging the miscoverage level alpha_t one step at a time. At the default gamma=0.005, ACI needs O(1/gamma) = 200 steps to fully reprice — about 17 years of monthly data. That is not adaptation; it is drift.
+
+`RetroAdj` (Jun & Ohn 2025, arXiv:2511.04275) fixes this by retroactively correcting all leave-one-out residuals in the active window simultaneously at each step. The correction uses rank-one updates to the inverse kernel matrix Q = (K + lambda*I)^{-1}, so no additional model fitting is required. After an abrupt shift, the jackknife+ interval responds within 1-3 steps.
+
+**Hard constraint:** The base model must be kernel ridge regression (KRR) or another self-stable linear smoother. GLMs and GBMs do not qualify. For pricing teams with an existing model, use residual-only mode.
+
+### Basic usage (KRR base model)
+
+```python
+from insurance_conformal import RetroAdj
+
+# Features should be pre-standardised
+model = RetroAdj(
+    bandwidth=1.0,      # RBF kernel bandwidth
+    lambda_reg=0.1,     # KRR regularisation
+    window_size=250,    # sliding window length (paper default)
+    gamma=0.005,        # ACI step size
+    alpha_update="aci", # 'aci' or 'sfogd'
+)
+model.fit(y_train, X_train)
+lower, upper = model.predict_interval(y_test, X_test, alpha=0.10)
+```
+
+### Residual-only mode (for GLM/GBM residuals)
+
+When you have a pre-fitted external model, pass residuals instead:
+
+```python
+resid_train = y_train - glm.predict(X_train)
+resid_test  = y_test  - glm.predict(X_test)
+
+model = RetroAdj(window_size=250)
+model.fit(resid_train)  # X=None: kernel degenerates to ridge-mean
+lower_r, upper_r = model.predict_interval(resid_test, alpha=0.10)
+
+# Shift back to original scale
+lower_claims = lower_r + glm.predict(X_test)
+upper_claims = upper_r + glm.predict(X_test)
+```
+
+With X=None the kernel degenerates (K = ones-matrix + lambda*I) so KRR reduces to a ridge-regularised mean. This retains the jackknife+ interval and improved alpha tracking but is an approximation of the full method. Alternatively, use `X = np.arange(len(y)).reshape(-1, 1)` as a time index to let KRR fit a smooth trend.
+
+### Alpha update options
+
+| Mode | When to use |
+|------|-------------|
+| `alpha_update="aci"` | Default. Fixed step size gamma. Fast response to abrupt shifts. |
+| `alpha_update="sfogd"` | AdaGrad-style (Algorithm 5 of Jun & Ohn). Better for slowly-varying shifts. Step size scales down as gradients accumulate. |
+
+### Numerical stability
+
+After many rank-one updates, Q can lose symmetry or positive definiteness due to floating-point accumulation. `RetroAdj` handles this with:
+
+- **Symmetry enforcement:** `Q = (Q + Q.T) / 2` after every update.
+- **Periodic reset:** Full recomputation of Q from scratch every `reset_freq` steps (default 500). O(w^3) per reset — for w=250 that is ~15M flops, negligible.
+- **Instability detection:** If the rank-one update denominator goes non-positive (impossible in exact arithmetic), the method resets Q for that step and continues.
+
+### Key parameters
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `bandwidth` | 1.0 | RBF bandwidth. Pre-standardise features or tune this. |
+| `lambda_reg` | 0.1 | KRR regularisation. Larger = smoother, more biased. |
+| `window_size` | 250 | Sliding window length. Paper default. |
+| `gamma` | 0.005 | ACI/SFOGD step size. |
+| `alpha_update` | `"aci"` | `"aci"` or `"sfogd"`. |
+| `symmetric` | `False` | If True, use \|R_loo\| for symmetric intervals. Signed residuals (default) give asymmetric intervals more appropriate for right-skewed claims. |
+| `reset_freq` | 500 | Steps between full Q recomputation. |
+
+**Reference:** Jun, J. & Ohn, I. (2025). "Online Conformal Inference with Retrospective Adjustment for Faster Adaptation to Distribution Shift." arXiv:2511.04275.
+
+---
+
 ## Limitations
 
 **Exchangeability assumption.** Split conformal requires calibration and test data to be exchangeable. Temporal covariate shift — changes in portfolio mix, inflation, or risk profile between calibration and test periods — weakens this assumption. Use temporal calibration splits and monitor coverage drift over time.
