@@ -412,10 +412,12 @@ class TestSelectionScoreFunctions:
 
     def test_selection_score_entropy_uniform_is_zero(self):
         """Uniform distribution has max entropy => negative entropy = 0."""
-        probs = np.array([[1/3, 1/3, 1/3], [0.25, 0.25, 0.25, 0.25]])
-        # For 3-class: normalised entropy = 1, so score = 0
+        # Test each uniform distribution independently — numpy cannot create a
+        # ragged 2D array from vectors of different lengths (numpy >= 1.24).
         s3 = selection_score_entropy(np.array([[1/3, 1/3, 1/3]]))
-        assert abs(s3[0]) < 1e-10
+        assert abs(s3[0]) < 1e-10, "3-class uniform should have zero entropy score"
+        s4 = selection_score_entropy(np.array([[0.25, 0.25, 0.25, 0.25]]))
+        assert abs(s4[0]) < 1e-10, "4-class uniform should have zero entropy score"
 
     def test_selection_score_entropy_deterministic_is_one(self):
         """Deterministic distribution has zero entropy => score = 1."""
