@@ -506,13 +506,11 @@ See `notebooks/benchmark_retroadj.py` for the full benchmark. Run on Databricks 
 
 ## Related Libraries
 
-| Library | What it does |
+| Library | Description |
 |---------|-------------|
-| [insurance-cv](https://github.com/burning-cost/insurance-cv) | Temporal cross-validation — provides the calibration splits conformal prediction requires to maintain coverage guarantees |
-| [insurance-distributional](https://github.com/burning-cost/insurance-distributional) | Parametric severity distributions — alternative when closed-form tail quantities are needed rather than distribution-free intervals |
-| [insurance-quantile](https://github.com/burning-cost/insurance-quantile) | Quantile GBM for tail risk — feeds directly into conformalized quantile regression for distribution-free coverage |
-
----
+| [insurance-monitoring](https://github.com/burning-cost/insurance-monitoring) | Model drift detection — track coverage stability over time |
+| [insurance-conformal-ts](https://github.com/burning-cost/insurance-conformal-ts) | Conformal prediction for non-exchangeable claims time series |
+| [insurance-severity](https://github.com/burning-cost/insurance-severity) | Spliced severity models and EVT — conformal intervals for tail risk quantification |
 
 ## Benchmark: Conformal vs parametric Tweedie intervals (GBM)
 
