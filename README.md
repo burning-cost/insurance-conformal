@@ -49,7 +49,7 @@ For Tweedie/Poisson models, Var(Y) ~ mu^p. The correct non-conformity score is t
 score(y, yhat) = |y - yhat| / yhat^(p/2)
 ```
 
-This accounts for the inherent heteroscedasticity of insurance claims. The result: ~30% narrower intervals with identical coverage guarantees. Based on Manna et al. (2025, preprint) and [arXiv 2507.06921](https://arxiv.org/abs/2507.06921).
+This accounts for the inherent heteroscedasticity of insurance claims. The result: 13-14% narrower intervals with identical coverage guarantees in the CatBoost Tweedie(p=1.5) GBM benchmark (pearson_weighted: -13.4%, LW Conformal: -11.7%; 50k synthetic UK motor policies, heteroskedastic Gamma DGP, temporal 60/20/20 split, seed=42). Based on Manna et al. (2025, preprint) and [arXiv 2507.06921](https://arxiv.org/abs/2507.06921).
 
 ---
 
