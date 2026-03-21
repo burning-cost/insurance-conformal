@@ -11,13 +11,29 @@ This is distribution-free - no parametric assumptions on the error distribution.
 The catch: it's a marginal guarantee, not conditional. See coverage_by_decile()
 for checking whether coverage is uniform across risk deciles.
 
-Academic foundation:
-    Hong (2025, arXiv:2503.03659) and Hong (2026, arXiv:2601.21153) establish
-    the theoretical case for applying conformal prediction to insurance claims
-    in the regression setting, including the Solvency II finite-sample validity
-    framing. This module is the implementation that those papers do not provide.
-    The pearson_weighted non-conformity score is validated in Manna et al.
-    (2025, arXiv:2507.06921) for Tweedie models.
+Academic foundation: Hong (2025, arXiv:2503.03659) and Hong (2026, arXiv:2601.21153)
+establish the theoretical case for applying conformal prediction to insurance claims
+in the regression setting, including the Solvency II finite-sample validity framing.
+This module is the implementation that those papers do not provide.
+
+The non-conformity score design draws on two bodies of work. Manna et al. (2025,
+Wiley ASMB; arXiv:2507.06921) demonstrate Pearson residual scores for Tweedie
+GLM and LightGBM. Hong (arXiv:2503.03659, arXiv:2601.21153) provides the
+theoretical grounding for model-free and h-transform variants, with explicit
+Solvency II framing. The `pearson_weighted` score implements the heteroscedasticity
+correction motivated by both lines of work.
+
+The distinction between marginal and conditional coverage — and why conditional
+is harder — connects to the procedural/substantive fairness framing of Liu et al.
+(arXiv:2602.16794): marginal coverage is procedurally fair (correct on average)
+but can fail substantively (systematically wrong for high-risk subgroups). Use
+coverage_by_decile() to check for substantive miscoverage.
+
+References:
+    Hong (2025) arXiv:2503.03659 — model-free conformal for insurance claims
+    Hong (2026) arXiv:2601.21153 — regression setting, h-transform residuals
+    Manna et al. (2025) arXiv:2507.06921 — Tweedie GLM + LightGBM, Pearson scores
+    Liu et al. (2026) arXiv:2602.16794 — procedural vs substantive coverage fairness
 """
 
 from __future__ import annotations

@@ -26,11 +26,26 @@ different h functions.
 
 References:
     Hong, L. (2025). "Conformal prediction of future insurance claims in the
-    regression problem." arXiv:2503.03659. https://arxiv.org/abs/2503.03659
+        regression problem." arXiv:2503.03659.
+        https://arxiv.org/abs/2503.03659
+        Updated September 2025. Introduces the model-free approach (HongModelFree)
+        and provides a Solvency II framing for conformal upper bounds. The paper
+        establishes that the W_i feature adjustment gives valid coverage without
+        any regression model, using only the exchangeability assumption.
 
-    Hong, L. (2026). "A new strategy for finite-sample valid prediction of
-    future insurance claims in the regression setting." arXiv:2601.21153.
-    https://arxiv.org/abs/2601.21153
+    Hong, L. (2026). "A new strategy for finite-sample valid prediction of future
+        insurance claims in the regression setting." arXiv:2601.21153.
+        https://arxiv.org/abs/2601.21153
+        Extends the approach to the regression setting. The h-transform formulation
+        (HongTransformConformal) shows that coverage holds for ANY predictor h,
+        making explicit what is implicit in standard residual conformal: the model
+        quality only affects interval width, not validity.
+
+    Graziadei, H., Janett, C., Embrechts, P. & Bucher, A. (2023, updated June 2025).
+        "Conformal prediction for frequency-severity modeling." arXiv:2307.13124.
+        https://arxiv.org/abs/2307.13124
+        Related insurance application; complementary to Hong's regression framing.
+        See insurance_conformal.claims.FrequencySeverityConformal.
 """
 
 from __future__ import annotations

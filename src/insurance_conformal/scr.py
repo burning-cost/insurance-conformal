@@ -27,13 +27,18 @@ Regulatory context: EIOPA has not issued formal guidance on conformal methods
 as of 2025. Present these outputs as supplementary technical validation, not
 as primary SCR figures, until regulatory acceptance is established.
 
-Academic context:
-    Hong (2025, arXiv:2503.03659) explicitly frames conformal prediction for
-    insurance claims within Solvency II compliance, arguing that finite-sample
-    validity — the guarantee this module provides — is the correct standard for
-    regulatory capital modelling. Hong (2026, arXiv:2601.21153) extends this
-    to the regression setting. SCRReport implements the spirit of this framing:
-    distribution-free upper bounds at alpha=0.005 for per-risk SCR components.
+Academic context: Hong (arXiv:2503.03659) explicitly frames conformal prediction
+for insurance claims within Solvency II compliance, arguing that finite-sample
+validity — the guarantee this module provides — is the correct standard for
+regulatory capital modelling. This module is the implementation that paper does
+not provide. Hong (arXiv:2601.21153) extends this to the regression setting,
+covering the Tweedie models used in motor and property pricing.
+
+References:
+    Hong (2025) "Conformal prediction of future insurance claims in the
+        regression problem." arXiv:2503.03659
+    Hong (2026) "A new strategy for finite-sample valid prediction of future
+        insurance claims in the regression setting." arXiv:2601.21153
 """
 
 from __future__ import annotations
