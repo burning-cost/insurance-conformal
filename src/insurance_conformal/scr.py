@@ -26,6 +26,14 @@ solvency_capital_requirement() method accepts any alpha.
 Regulatory context: EIOPA has not issued formal guidance on conformal methods
 as of 2025. Present these outputs as supplementary technical validation, not
 as primary SCR figures, until regulatory acceptance is established.
+
+Academic context:
+    Hong (2025, arXiv:2503.03659) explicitly frames conformal prediction for
+    insurance claims within Solvency II compliance, arguing that finite-sample
+    validity — the guarantee this module provides — is the correct standard for
+    regulatory capital modelling. Hong (2026, arXiv:2601.21153) extends this
+    to the regression setting. SCRReport implements the spirit of this framing:
+    distribution-free upper bounds at alpha=0.005 for per-risk SCR components.
 """
 
 from __future__ import annotations

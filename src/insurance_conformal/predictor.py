@@ -10,6 +10,14 @@ The guarantee: P(y_test in [lower, upper]) >= 1 - alpha for exchangeable data.
 This is distribution-free - no parametric assumptions on the error distribution.
 The catch: it's a marginal guarantee, not conditional. See coverage_by_decile()
 for checking whether coverage is uniform across risk deciles.
+
+Academic foundation:
+    Hong (2025, arXiv:2503.03659) and Hong (2026, arXiv:2601.21153) establish
+    the theoretical case for applying conformal prediction to insurance claims
+    in the regression setting, including the Solvency II finite-sample validity
+    framing. This module is the implementation that those papers do not provide.
+    The pearson_weighted non-conformity score is validated in Manna et al.
+    (2025, arXiv:2507.06921) for Tweedie models.
 """
 
 from __future__ import annotations

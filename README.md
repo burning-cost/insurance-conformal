@@ -500,9 +500,24 @@ See `notebooks/benchmark_retroadj.py` for the full benchmark. Run on Databricks 
 
 ## References
 
-- Manna, S. et al. (2025). "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921* (preprint; not yet peer-reviewed as of March 2026).
-- Angelopoulos, A. N., & Bates, S. (2023). "Conformal prediction: A gentle introduction." *Foundations and Trends in Machine Learning*, 16(4), 494-591.
-- Vovk, V., Gammerman, A., & Shafer, G. (2005). *Algorithmic learning in a random world*. Springer.
+### Academic literature: conformal prediction for insurance
+
+The following peer-reviewed and preprint papers validate conformal prediction as the right framework for insurance uncertainty quantification. None of these authors have released a Python implementation — this library fills that gap.
+
+- **Hong, L. (2025).** "Conformal prediction of future insurance claims in the regression problem." *arXiv:2503.03659* (submitted March 2025; revised September 2025). Model-free, tuning-parameter-free conformal prediction for insurance claims; targets Solvency II finite-sample validity requirements. [arXiv link](https://arxiv.org/abs/2503.03659)
+
+- **Hong, L. (2026).** "A new strategy for finite-sample valid prediction of future insurance claims in the regression setting." *arXiv:2601.21153* (submitted January 2026). Extends the 2025 strategy: converts predictive methods from the iid setting to the regression setting and establishes that conformal prediction is the only known model-free method for finite-sample valid prediction in insurance. [arXiv link](https://arxiv.org/abs/2601.21153)
+
+- **Graziadei, H., Janett, C., Embrechts, P. & Bucher, A. (2023).** "Conformal Prediction for Insurance Data." *arXiv:2307.13124* (first published 2023; updated 2025). Establishes the correct conformity scoring protocol for two-stage frequency-severity models. Implemented in `FrequencySeverityConformal`. [arXiv link](https://arxiv.org/abs/2307.13124)
+
+- **Manna, S. et al. (2025).** "Distribution-free prediction sets for Tweedie regression." *arXiv:2507.06921* (preprint; not yet peer-reviewed as of March 2026). Validates the Pearson-weighted non-conformity score for Tweedie GLMs and LightGBM; directly supports the `pearson_weighted` and `LocallyWeightedConformal` implementations.
+
+### Conformal prediction foundations
+
+- **Angelopoulos, A. N., Bates, S., Fisch, A., Lei, L., & Schuster, T. (2024).** "Conformal Risk Control." *ICLR 2024.* *arXiv:2208.02814.* Foundation for the `insurance_conformal.risk` subpackage.
+- **Angelopoulos, A. N., & Bates, S. (2023).** "Conformal prediction: A gentle introduction." *Foundations and Trends in Machine Learning*, 16(4), 494-591.
+- **Vovk, V., Gammerman, A., & Shafer, G. (2005).** *Algorithmic learning in a random world*. Springer.
+- **Jun, J. & Ohn, I. (2025).** "Online Conformal Inference with Retrospective Adjustment for Faster Adaptation to Distribution Shift." *arXiv:2511.04275.* Foundation for `RetroAdj`.
 
 ---
 

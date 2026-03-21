@@ -25,8 +25,12 @@ which makes it easy to verify your implementation and to experiment with
 different h functions.
 
 References:
-    Hong (2025) "Model-free conformal prediction", arXiv:2503.03659
-    Hong (2026) "h-transformation conformal prediction", arXiv:2601.21153
+    Hong, L. (2025). "Conformal prediction of future insurance claims in the
+    regression problem." arXiv:2503.03659. https://arxiv.org/abs/2503.03659
+
+    Hong, L. (2026). "A new strategy for finite-sample valid prediction of
+    future insurance claims in the regression setting." arXiv:2601.21153.
+    https://arxiv.org/abs/2601.21153
 """
 
 from __future__ import annotations
