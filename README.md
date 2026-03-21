@@ -74,6 +74,8 @@ uv add "insurance-conformal[lightgbm]"
 uv add "insurance-conformal[all]"
 ```
 
+**Dependencies:** polars and pandas are both required. Polars is the primary output format — all prediction and diagnostic methods return `pl.DataFrame`. Pandas is required for binning utilities (`pd.qcut`/`pd.cut`) and for accepting pandas DataFrame inputs. Both install automatically.
+
 ---
 
 ## Quick start
