@@ -1,6 +1,7 @@
 # insurance-conformal
 
 [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
+[![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 [![Python](https://img.shields.io/pypi/pyversions/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
