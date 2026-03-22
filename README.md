@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/insurance-conformal/blob/main/notebooks/quickstart.ipynb)
 
-> 💬 Questions or feedback? Start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions). Found it useful? A ⭐ helps others find it.
+> Questions or feedback? Start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions). Found it useful? A star helps others find it.
 
 Distribution-free prediction intervals for insurance GBM and GLM pricing models — for pricing actuaries who need uncertainty quantification that holds regardless of model specification, without the coverage failures that parametric intervals produce on heterogeneous motor books.
 
