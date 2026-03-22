@@ -78,8 +78,3 @@ packages = ["src/insurance_conformal"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
-
-[dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-]
