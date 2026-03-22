@@ -262,7 +262,7 @@ def width_efficiency_comparison(
     -------
     pl.DataFrame
         Columns: predictor_name, marginal_coverage, target_coverage,
-        mean_width, median_width, width_90th_pct, width_relative_to_first.
+        mean_width, median_width, width_90th_pct, width_relative_to_widest.
         Sorted by mean_width ascending.
 
     Examples
