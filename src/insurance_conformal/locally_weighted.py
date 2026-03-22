@@ -228,6 +228,10 @@ class LocallyWeightedConformal:
         self._check_fitted()
 
         y = as_numpy(y_cal)
+        if len(X_cal) != len(y):
+            raise ValueError(
+                f"X has {len(X_cal)} samples but y has {len(y)} — lengths must match"
+            )
         yhat = self._base_predict(X_cal)
         rho_hat = self._spread_predict(X_cal)
 

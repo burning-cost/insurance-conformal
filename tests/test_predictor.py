@@ -122,6 +122,12 @@ class TestCalibration:
         cp.calibrate(poisson_data["X_cal"], y_cal_pl)
         assert cp.is_calibrated_
 
+    def test_calibrate_mismatched_lengths_raises(self, poisson_data):
+        cp = InsuranceConformalPredictor(model=poisson_data["model"], tweedie_power=1.0)
+        y_short = poisson_data["y_cal"][:-1]
+        with pytest.raises(ValueError, match="lengths must match"):
+            cp.calibrate(poisson_data["X_cal"], y_short)
+
 
 class TestPredictInterval:
     def test_output_structure(self, poisson_data):

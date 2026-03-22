@@ -248,6 +248,11 @@ class FrequencySeverityConformal:
         if X.ndim == 1:
             X = X.reshape(-1, 1)
 
+        if len(X) != len(y):
+            raise ValueError(
+                f"X has {len(X)} samples but y has {len(y)} — lengths must match"
+            )
+
         # Use composed prediction: feed mu_hat(x) into severity model
         mu_hat = self._freq_predict(X)  # predicted frequency
         composed_pred = self._composed_predict(X, mu_hat)

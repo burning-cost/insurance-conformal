@@ -166,6 +166,12 @@ class TestCalibrate:
         lw.calibrate(synthetic_data["X_cal"], synthetic_data["y_cal"])
         assert len(lw.cal_quantiles_) == 0
 
+    def test_calibrate_mismatched_lengths_raises(self, synthetic_data):
+        lw = make_lw_with_mock_spread(synthetic_data, tweedie_power=1.0)
+        y_short = synthetic_data["y_cal"][:-1]
+        with pytest.raises(ValueError, match="lengths must match"):
+            lw.calibrate(synthetic_data["X_cal"], y_short)
+
 
 # ---------------------------------------------------------------------------
 # predict_interval

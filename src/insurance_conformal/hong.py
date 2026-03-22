@@ -278,6 +278,10 @@ class HongTransformConformal:
         self
         """
         y = as_numpy(y_cal).ravel()
+        if len(X_cal) != len(y):
+            raise ValueError(
+                f"X has {len(X_cal)} samples but y has {len(y)} — lengths must match"
+            )
         h_cal = as_numpy(self.h(self._to_numpy(X_cal))).ravel()
 
         self.cal_residuals_ = y - h_cal

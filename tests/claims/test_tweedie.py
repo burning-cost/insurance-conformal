@@ -319,6 +319,25 @@ class TestTwoStageLWConformal:
         with pytest.raises(RuntimeError, match="fit"):
             lw.calibrate(X_cal, y_cal)
 
+    def test_calibrate_mismatched_lengths_raises(self, large_dataset):
+        """Length check fires before model calls, so no catboost needed."""
+        X_train, y_train, X_cal, y_cal, X_test, y_test = large_dataset
+        pytest.importorskip("sklearn")
+
+        class ConstantPredictor:
+            def predict(self, X):
+                return np.ones(len(X))
+
+            def fit(self, X, y):
+                return self
+
+        lw = TwoStageLWConformal(mean_model=ConstantPredictor(), p=1.5)
+        lw._fitted_mean = ConstantPredictor()
+        lw._fitted_spread = ConstantPredictor()
+        y_short = y_cal[:-1]
+        with pytest.raises(ValueError, match="lengths must match"):
+            lw.calibrate(X_cal, y_short)
+
     def test_predict_raises_before_calibrate(self, large_dataset):
         pytest.importorskip("sklearn")
         pytest.importorskip("catboost")

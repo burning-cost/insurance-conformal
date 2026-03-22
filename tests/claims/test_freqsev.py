@@ -263,6 +263,16 @@ class TestCalibrate:
         )
         assert len(fs.cal_quantiles_) == 0
 
+    def test_calibrate_mismatched_lengths_raises(self, synthetic_freqsev):
+        fs = make_fitted_fs(synthetic_freqsev)
+        y_short = synthetic_freqsev["y_cal"][:-1]
+        with pytest.raises(ValueError, match="lengths must match"):
+            fs.calibrate(
+                synthetic_freqsev["X_cal"],
+                synthetic_freqsev["d_cal"],
+                y_short,
+            )
+
 
 # ---------------------------------------------------------------------------
 # predict_interval()

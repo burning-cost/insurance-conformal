@@ -487,6 +487,11 @@ class TwoStageLWConformal:
         if X_cal.ndim == 1:
             X_cal = X_cal.reshape(-1, 1)
 
+        if len(X_cal) != len(y_cal):
+            raise ValueError(
+                f"X has {len(X_cal)} samples but y has {len(y_cal)} — lengths must match"
+            )
+
         mu_cal = np.clip(
             np.asarray(self._fitted_mean.predict(X_cal), dtype=float),
             self.min_mu,

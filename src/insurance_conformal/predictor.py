@@ -198,6 +198,10 @@ class InsuranceConformalPredictor:
             Returns self for method chaining.
         """
         y_cal = as_numpy(y_cal)
+        if len(X_cal) != len(y_cal):
+            raise ValueError(
+                f"X has {len(X_cal)} samples but y has {len(y_cal)} — lengths must match"
+            )
         yhat_cal = self._predict(X_cal)
         y_cal, yhat_cal = apply_exposure(y_cal, yhat_cal, exposure)
 

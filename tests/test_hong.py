@@ -171,6 +171,12 @@ class TestHongTransformConformal:
         result = htc.calibrate(hong_data["X_cal"], hong_data["y_cal"])
         assert result is htc
 
+    def test_calibrate_mismatched_lengths_raises(self, hong_data):
+        htc = HongTransformConformal(h=simple_model_predict)
+        y_short = hong_data["y_cal"][:-1]
+        with pytest.raises(ValueError, match="lengths must match"):
+            htc.calibrate(hong_data["X_cal"], y_short)
+
     def test_predict_without_calibrate_raises(self, hong_data):
         htc = HongTransformConformal(h=simple_model_predict)
         with pytest.raises(RuntimeError, match="calibrate"):
