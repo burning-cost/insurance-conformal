@@ -679,3 +679,7 @@ MIT. See [LICENSE](LICENSE).
 ## Contributing
 
 Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal](https://github.com/burning-cost/insurance-conformal).
+
+---
+
+Need help implementing this? [See our consulting services](https://burning-cost.github.io/work-with-us/).
