@@ -136,6 +136,26 @@ print(intervals.head())
 # Note: lower=0.0 is expected — insurance losses are non-negative and the predictor clips at zero.
 ```
 
+## Expected Performance
+
+On a 50,000-policy heteroskedastic Gamma UK motor book (CatBoost Tweedie(p=1.5), temporal 60/20/20 split, seed=42):
+
+| Metric | Parametric Tweedie | Conformal (pearson_weighted) | LW Conformal |
+|--------|-------------------|------------------------------|--------------|
+| Aggregate coverage @ 90% | 0.931 | 0.902 | 0.903 |
+| Top-decile coverage @ 90% | 0.904 | 0.879 | 0.906 |
+| Mean interval width (£) | 4,393 | 3,806 | 3,881 |
+| Width vs parametric | ref | −13.4% | −11.7% |
+| Distribution-free guarantee | No | Yes | Yes |
+
+The parametric aggregate of 93.1% at a 90% target signals over-width on low-risk policies.
+Conformal is 13.4% narrower with a valid coverage guarantee. LW conformal also meets the
+90% target in the top decile — the one that drives reinsurance attachment and reserving.
+
+Run the validation: import `notebooks/databricks_validation.py` into Databricks.
+
+---
+
 ## Worked Example
 
 [`conformal_prediction_intervals.py`](https://github.com/burning-cost/burning-cost-examples/blob/main/examples/conformal_prediction_intervals.py) compares Tweedie conformal prediction intervals against a parametric bootstrap baseline on a synthetic motor book, then drills into per-segment coverage analysis across risk deciles and vehicle groups. It shows exactly where the bootstrap fails to meet its stated 90% coverage target — and confirms that the conformal approach holds by construction.
