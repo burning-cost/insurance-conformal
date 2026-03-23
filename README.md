@@ -13,25 +13,13 @@ Distribution-free prediction intervals for insurance GBM and GLM pricing models 
 
 ---
 
-## Why bother
+## Why use this?
 
-Parametric Tweedie prediction intervals assume variance scales as mu^p with a single dispersion parameter estimated from the calibration set. That assumption fails on heterogeneous motor books where high-mean risks are genuinely more dispersed than the parametric family predicts. When it fails, the parametric approach over-covers low-risk policies (wasting interval width) and under-covers high-risk policies — the precise segment where getting it wrong is most expensive.
-
-Conformal prediction fixes this. It makes no distributional assumption: the only requirement is that calibration and test data are exchangeable. The coverage guarantee holds regardless of model specification or DGP shape.
-
-50,000 synthetic UK motor policies. CatBoost Tweedie(p=1.5) point forecast. Heteroskedastic Gamma DGP where high-mean risks are more dispersed than Tweedie(1.5) predicts. Temporal 60/20/20 split. 90% target coverage. Run on Databricks serverless, seed=42.
-
-| Metric | Parametric Tweedie | Conformal (pearson_weighted) | LW Conformal |
-|--------|-------------------|------------------------------|--------------|
-| Aggregate coverage @ 90% | 0.931 (over-wide) | 0.902 | 0.903 |
-| Worst-decile coverage | 0.904 | 0.879 | **0.906** |
-| Mean interval width (£) | 4,393 | 3,806 (-13.4%) | 3,881 (-11.7%) |
-| Calibration time | ~0s | 0.01s | ~1.5s |
-| Width adapts to risk segment | No | Partial | Yes |
-| Distribution-free guarantee | No | Yes (marginal) | Yes (marginal) |
-
-The parametric approach estimates a single sigma on the calibration set. When high-mean risks are genuinely more dispersed — as they are here — it over-covers low-risk policies (widening intervals to compensate) while just barely meeting the target in the top decile. Conformal intervals are 13-14% narrower and meet the target on aggregate. The locally-weighted variant also meets it in the top decile. See the full benchmark at `benchmarks/benchmark_gbm.py`.
-
+- Parametric Tweedie prediction intervals assume a single dispersion parameter across all risks — on a heterogeneous UK motor book, this over-covers low-risk policies (wasted width) and under-covers high-risk policies, which is exactly where getting it wrong is most expensive.
+- Conformal prediction fixes this without distributional assumptions: the only requirement is exchangeable calibration and test data. On 50,000 synthetic UK motor policies, conformal intervals are 13–14% narrower than parametric while meeting the 90% target, and the locally-weighted variant also meets it in the top risk decile.
+- Uses insurance-specific non-conformity scores (Pearson-weighted: |y − ŷ| / ŷ^(p/2)) that account for Tweedie heteroscedasticity — not the raw absolute residual, which is wrong for insurance data.
+- Includes Conformal Risk Control for premium sufficiency: finds the smallest loading factor such that expected shortfall from underpriced policies is bounded at a specified level — a direct regulatory argument, not a statistical artefact.
+- The coverage guarantee is distribution-free and finite-sample valid: suitable for inclusion in PRA SS1/23 model validation documentation (empirical coverage evidence against a stated confidence level).
 ---
 
 [Run on Databricks](https://github.com/burning-cost/burning-cost-examples/blob/main/notebooks/conformal_prediction_intervals.py)
