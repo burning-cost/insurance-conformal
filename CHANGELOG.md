@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2026-03-23
+
+### Fixed
+- Bumped numpy minimum version from >=1.24 to >=1.25 to ensure compatibility with scipy's use of numpy.exceptions (added in numpy 1.25)
+
+
 ## v0.6.0 (2026-03-22) [unreleased]
 - Add pytest to dev dependencies — fixes test collection in isolated venv
 - Remove emoji from discussion CTA

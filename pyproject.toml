@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.6.0"
+version = "0.6.1"
 description = "Distribution-free prediction intervals for insurance GBM and GLM pricing models"
 readme = "README.md"
 license = "MIT"
@@ -37,7 +37,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy>=1.24",
+    "numpy>=1.25",
     "polars>=1.0",
     "pandas>=2.0",
     "scipy>=1.10",
