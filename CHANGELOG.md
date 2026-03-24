@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.2] - 2026-03-24
+
+### Added
+- `ConformalisedQuantileRegression`: split Conformalized Quantile Regression (CQR)
+  from Romano, Patterson & Candès (NeurIPS 2019, arXiv:1905.03222). Wraps a pair of
+  pre-fitted quantile models (lower and upper quantile) and applies a conformal
+  calibration correction so that the final intervals achieve marginal coverage
+  >= 1 - alpha regardless of quantile model misspecification.
+
+  Why CQR rather than RAPS: RAPS (Angelopoulos et al. 2020) was designed for
+  multi-class classification — its regularisation penalty acts on the size of a
+  discrete prediction set, which has no direct analogue in the regression setting.
+  CQR is the regression counterpart: it operates on quantile model outputs and
+  produces adaptive (heteroscedastic) intervals that are wider for high-variance
+  risks and narrower for stable ones. For insurance this is more useful than RAPS
+  because claim severity is genuinely heteroscedastic — young drivers, high-value
+  vehicles, and CAT-exposed properties all have fatter tails than low-risk policies.
+
+  The class accepts any sklearn-compatible quantile model: CatBoost
+  `Quantile:alpha=`, LightGBM `objective="quantile"`, sklearn
+  `GradientBoostingRegressor(loss="quantile")`. The four output columns are
+  `lower`, `q_lo`, `q_hi`, `upper` — the raw quantile outputs are preserved
+  as diagnostics alongside the conformally corrected bounds.
+
 ## [0.6.1] - 2026-03-23
 
 ### Fixed
@@ -42,4 +66,3 @@
 - Fix docs workflow: use pdoc not pdoc3 syntax (no --html flag)
 - Add pdoc API documentation workflow with GitHub Pages deployment
 - Add benchmark: conformal intervals vs naive parametric for insurance pricing
-

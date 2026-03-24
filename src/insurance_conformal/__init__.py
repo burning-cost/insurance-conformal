@@ -51,9 +51,21 @@ v0.6.0 adds:
   residual-only mode for external GLM/GBM models, and periodic numerical reset.
   See insurance_conformal.retro_adj for RetroAdj.
 
+v0.6.2 adds:
+- ConformalisedQuantileRegression: split CQR (Romano, Patterson & Candès, NeurIPS 2019,
+  arXiv:1905.03222). Wraps a pair of pre-fitted quantile models and applies a conformal
+  calibration correction to guarantee marginal coverage >= 1 - alpha regardless of
+  quantile model misspecification. Produces heteroscedastic intervals — wider for
+  high-variance risks, narrower for stable ones — which is directly useful for
+  personal lines motor (young drivers, high-value vehicles) and commercial property
+  (cat-exposed risks). Works with any quantile objective: CatBoost Quantile:alpha=,
+  LightGBM objective=quantile, sklearn GradientBoostingRegressor loss=quantile.
+  See ConformalisedQuantileRegression.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
-Fan & Sesia (2025) arXiv:2512.15383, and Jun & Ohn (2025) arXiv:2511.04275.
+Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275, and
+Romano, Patterson & Candès (2019) arXiv:1905.03222.
 
 Example usage::
 
@@ -128,6 +140,22 @@ For online conformal with retrospective adjustment (distribution shift)::
     model2 = RetroAdj(window_size=250)
     model2.fit(resid_train)
     lower_r, upper_r = model2.predict_interval(resid_test, alpha=0.10)
+
+For conformalized quantile regression (heteroscedastic intervals)::
+
+    from catboost import CatBoostRegressor
+    from insurance_conformal import ConformalisedQuantileRegression
+
+    lo = CatBoostRegressor(loss_function="Quantile:alpha=0.05", ...)
+    hi = CatBoostRegressor(loss_function="Quantile:alpha=0.95", ...)
+    lo.fit(X_train, y_train)
+    hi.fit(X_train, y_train)
+
+    cqr = ConformalisedQuantileRegression(model_lo=lo, model_hi=hi)
+    cqr.calibrate(X_cal, y_cal)
+    intervals = cqr.predict_interval(X_test, alpha=0.10)
+    # intervals["lower"], intervals["upper"] carry the coverage guarantee
+    # intervals["q_lo"], intervals["q_hi"] are the raw quantile model outputs
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -149,6 +177,7 @@ from insurance_conformal.diagnostics_ext import (
     width_efficiency_comparison,
 )
 from insurance_conformal.retro_adj import RetroAdj
+from insurance_conformal.cqr import ConformalisedQuantileRegression
 
 __all__ = [
     # Core (v0.1)
@@ -173,6 +202,8 @@ __all__ = [
     # v0.4: multivariate subpackage (import from insurance_conformal.multivariate)
     # v0.6 additions
     "RetroAdj",
+    # v0.6.2 additions
+    "ConformalisedQuantileRegression",
 ]
 
 from importlib.metadata import version, PackageNotFoundError
