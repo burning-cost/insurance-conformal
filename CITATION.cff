@@ -1,0 +1,85 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "insurance-conformal"
+abstract: >
+  Distribution-free prediction intervals for insurance pricing models. Implements
+  split conformal prediction with insurance-specific non-conformity scores
+  (Pearson-weighted for Tweedie/Poisson models), locally weighted conformal
+  prediction, Conformal Risk Control for premium sufficiency, frequency-severity
+  conformal prediction, and online conformal inference with retrospective
+  adjustment (RetroAdj) for claims inflation adaptation.
+authors:
+  - name: "Burning Cost Contributors"
+url: "https://github.com/burning-cost/insurance-conformal"
+repository-code: "https://github.com/burning-cost/insurance-conformal"
+license: MIT
+version: "0.6.2"
+date-released: "2026-03-23"
+keywords:
+  - insurance
+  - conformal prediction
+  - prediction intervals
+  - uncertainty quantification
+  - actuarial
+references:
+  - type: article
+    title: "Conformal Prediction for Insurance Data"
+    authors:
+      - family-names: Graziadei
+        given-names: Helton
+      - family-names: Janett
+        given-names: Christoph
+      - family-names: Embrechts
+        given-names: Paul
+      - family-names: Bucher
+        given-names: Axel
+    year: 2023
+    url: "https://arxiv.org/abs/2307.13124"
+  - type: article
+    title: "Conformal Prediction Inference in Regularized Insurance Models"
+    authors:
+      - family-names: Manna
+        given-names: Satyajit
+    journal: "Wiley Applied Stochastic Models in Business and Industry"
+    year: 2025
+    url: "https://arxiv.org/abs/2507.06921"
+  - type: article
+    title: "Conformal Risk Control"
+    authors:
+      - family-names: Angelopoulos
+        given-names: Anastasios N.
+      - family-names: Bates
+        given-names: Stephen
+      - family-names: Fisch
+        given-names: Adam
+      - family-names: Lei
+        given-names: Lihua
+      - family-names: Schuster
+        given-names: Tal
+    booktitle: "ICLR 2024"
+    year: 2024
+    url: "https://arxiv.org/abs/2208.02814"
+  - type: article
+    title: "Online Conformal Inference with Retrospective Adjustment for Faster Adaptation to Distribution Shift"
+    authors:
+      - family-names: Jun
+        given-names: Kwang-Sung
+      - family-names: Ohn
+        given-names: Ilsang
+    year: 2025
+    url: "https://arxiv.org/abs/2511.04275"
+  - type: article
+    title: "Conformal prediction: A gentle introduction"
+    authors:
+      - family-names: Angelopoulos
+        given-names: Anastasios N.
+      - family-names: Bates
+        given-names: Stephen
+    journal: "Foundations and Trends in Machine Learning"
+    volume: 16
+    issue: 4
+    start: 494
+    end: 591
+    year: 2023
+    doi: "10.1561/2200000101"
