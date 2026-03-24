@@ -680,6 +680,10 @@ Note: conformal undercovers the top decile at 71.4% here — a known limitation 
 
 ---
 
+## Training Course
+
+Want structured learning? [Insurance Pricing in Python](https://burning-cost.github.io/course) is a 12-module course covering the full pricing workflow. Module 11 covers conformal prediction — split conformal, CQR, and coverage guarantees for pricing models. £97 one-time.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
