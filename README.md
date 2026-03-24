@@ -9,7 +9,7 @@
 
 > Questions or feedback? Start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions). Found it useful? A star helps others find it.
 
-Distribution-free prediction intervals for insurance GBM and GLM pricing models — for pricing actuaries who need uncertainty quantification that holds regardless of model specification, without the coverage failures that parametric intervals produce on heterogeneous motor books.
+Your Tweedie GBM's prediction intervals assume variance scales as mu^p across the whole book — an assumption that fails on heterogeneous UK motor portfolios where high-mean risks are genuinely more dispersed than the parametric family predicts. insurance-conformal replaces that assumption with a distribution-free guarantee: the interval contains the true loss at least 90% of the time regardless of the actual claim distribution, with 13–14% narrower intervals than the parametric baseline on a heteroskedastic motor DGP.
 
 ---
 
@@ -507,23 +507,11 @@ See `notebooks/benchmark_retroadj.py` for the full benchmark. Run on Databricks 
 
 ## Limitations
 
-- **The coverage guarantee is marginal, not conditional.** Split conformal guarantees P(y in interval) >= 1 - alpha averaged across all test observations. It does not guarantee coverage within every risk subgroup. In the GBM benchmark on 50,000 motor policies, the `pearson_weighted` score achieves 87.9% coverage in the top predicted decile against a 90% target — a 2.1pp shortfall for the highest-risk segment. Always run `coverage_by_decile()` after calibration; if a subgroup of commercial interest is under-covered, switch to `LocallyWeightedConformal`.
-
-- **Exchangeability requires careful calibration set construction.** The validity guarantee relies on calibration and test observations being exchangeable — roughly, drawn from the same distribution without temporal order dependence. Calibrating on 2021 data and deploying in 2024 violates this: claims inflation, Ogden rate changes, and portfolio mix evolution all create distributional shift. Use `temporal_split()` so the calibration window immediately precedes the test period. Even then, check coverage drift monthly using `insurance-monitoring`.
-
-- **IBNR on recent accident years renders calibration scores too optimistic.** Calibrating a severity or pure premium model on the most recent accident year means the calibration y values are incomplete — unreported claims are missing. Conformity scores computed on IBNR-affected y_cal values are smaller than they should be, producing intervals that are too narrow for the same IBNR-affected test period. Use only fully-developed accident years (typically 3+ years prior for UK motor) for calibration, or apply chain-ladder development factors to y_cal before passing it to `calibrate()`.
-
-- **Calibration set below 2,000 observations produces materially unstable interval widths.** The coverage guarantee technically holds for n_cal >= 1 (split conformal is valid at any calibration size), but the quantile estimate has high variance at small n_cal. With n_cal = 100, interval widths fluctuate by 20–30% across random seeds. For books with thin recent history — e.g. a specialist liability class with 300 policies per year — the stable-width threshold is not reachable from a single calibration year. Use multi-year calibration sets or accept that interval widths have material uncertainty and communicate this to stakeholders.
-
-- **LocallyWeightedConformal requires a second model fit and adds brittleness.** The spread model in `LocallyWeightedConformal` learns which features predict large residuals, then uses this to allocate interval width across the book. If the spread model overfits — particularly on small training sets — it assigns narrow intervals to high-variance policies that happened to have small residuals in the training data. Check the correlation between predicted spread and actual |residual| on holdout data before using LW conformal in production.
-
-- **PremiumSufficiencyController calibrates a single lambda* across the book.** The `PremiumSufficiencyController` finds the scalar loading such that E[shortfall] <= alpha over the calibration set. It does not allocate a risk-specific loading. A single lambda* applied uniformly will over-load safe risks and under-load risky ones if the distribution of shortfall risk is heterogeneous. For a risk-differentiated loading, fit the controller separately on risk subgroups or use `SelectiveRiskController` to reject the highest-shortfall risks.
-
-- **RetroAdj requires kernel ridge regression as the base model.** The retrospective rank-one update to Q is only valid when the base learner is a kernel ridge regressor (a self-stable linear smoother). GLMs and GBMs do not qualify. The residual-only mode (passing residuals from an external model with X=None) degrades the kernel to a ridge-regularised mean — which retains the anytime-valid alpha tracking but loses the covariate-dependent interval width adaptation. For a GBM residual-only workflow, the effective guarantee is the same as standard ACI with improved step response.
-
-- **SCRReport produces stress-testing bounds, not regulatory SCR.** The 99.5% upper bounds from `SCRReport` are distribution-free finite-sample bounds derived from conformal prediction. They are not equivalent to Solvency II SCR calculations, which require an approved internal model or the standard formula, actuarial sign-off, and governance under your firm's approved methodology. Do not use SCRReport output in regulatory returns.
-
----
+- Coverage is marginal, not conditional. The conformal guarantee holds on average across all observations. High-risk subgroups can still be systematically under-covered even when aggregate coverage meets the target. Always run `coverage_by_decile()` after calibration; do not rely on the headline coverage figure alone.
+- Exchangeability is violated by portfolio drift. Mid-year claims inflation, Ogden rate changes, or significant portfolio mix shifts break the exchangeability assumption. Use temporal calibration splits and monitor coverage via `RetroAdj` if abrupt shifts are expected.
+- IBNR on recent accident years produces intervals that are too narrow. Calibrating on development-year 0 or 1 data means non-conformity scores are computed on understated claim totals. Use only accident years with at least 3 years of development, or apply IBNR chain-ladder factors to y_cal before calibration.
+- Small calibration sets produce unstable interval widths. The coverage guarantee holds for any n_cal >= 1, but the quantile estimate has high variance below 500 observations. Target n_cal >= 2,000 for stable production use.
+- `RetroAdj` requires kernel ridge regression as the base model and cannot directly wrap a GBM or GLM. Use residual-only mode for existing models — this retains the interval adaptation but is an approximation of the full method.
 
 ## References
 
