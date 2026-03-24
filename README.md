@@ -13,6 +13,10 @@ Your Tweedie GBM's prediction intervals assume variance scales as mu^p across th
 
 ---
 
+## Part of the Burning Cost stack
+
+Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-gam](https://github.com/burning-cost/insurance-gam) or [insurance-frequency-severity](https://github.com/burning-cost/insurance-frequency-severity). Feeds distribution-free prediction intervals into [insurance-optimise](https://github.com/burning-cost/insurance-optimise) (uncertainty-aware pricing) and [insurance-governance](https://github.com/burning-cost/insurance-governance) (PRA SS1/23 validation packs). → [See the full stack](https://burning-cost.github.io/stack/)
+
 ## Why use this?
 
 - Parametric Tweedie prediction intervals assume a single dispersion parameter across all risks — on a heterogeneous UK motor book, this over-covers low-risk policies (wasted width) and under-covers high-risk policies, which is exactly where getting it wrong is most expensive.
