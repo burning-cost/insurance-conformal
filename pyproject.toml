@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.6.2"
+version = "0.6.3"
 description = "Distribution-free prediction intervals for insurance GBM and GLM pricing models"
 readme = "README.md"
 license = "MIT"

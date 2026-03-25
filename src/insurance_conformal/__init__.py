@@ -62,6 +62,14 @@ v0.6.2 adds:
   LightGBM objective=quantile, sklearn GradientBoostingRegressor loss=quantile.
   See ConformalisedQuantileRegression.
 
+v0.6.3 adds:
+- solvency_capital_range(): lightweight functional API for Solvency II SCR bounds.
+  Returns a SolvencyCapitalRange dataclass with per-risk scr_estimate, lower_bound,
+  upper_bound, interval_width, coverage_level, total_scr, and mean_interval_width.
+  Works with any conformal predictor. Complements SCRReport (the class-based API
+  for regulatory reporting); use this when you need SCR estimates inside a pipeline.
+  See solvency_capital_range.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275, and
@@ -178,6 +186,7 @@ from insurance_conformal.diagnostics_ext import (
 )
 from insurance_conformal.retro_adj import RetroAdj
 from insurance_conformal.cqr import ConformalisedQuantileRegression
+from insurance_conformal._solvency import solvency_capital_range, SolvencyCapitalRange
 
 __all__ = [
     # Core (v0.1)
@@ -204,6 +213,9 @@ __all__ = [
     "RetroAdj",
     # v0.6.2 additions
     "ConformalisedQuantileRegression",
+    # v0.6.3 additions
+    "solvency_capital_range",
+    "SolvencyCapitalRange",
 ]
 
 from importlib.metadata import version, PackageNotFoundError

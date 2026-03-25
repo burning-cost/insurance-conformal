@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.3] - 2026-03-25
+
+### Added
+- `solvency_capital_range()`: lightweight functional API for computing Solvency II
+  SCR bounds from any fitted conformal predictor. Returns a `SolvencyCapitalRange`
+  dataclass with `scr_estimate`, `lower_bound`, `upper_bound`, `interval_width`,
+  `coverage_level`, `n_risks`, `alpha`, `total_scr`, and `mean_interval_width`.
+
+  The upper_bound at alpha=0.005 is a valid 99.5% prediction bound under split conformal
+  theory — distribution-free, with finite-sample coverage guarantees. The SCR component
+  is max(0, upper_bound - expected_loss), matching the economic definition of required
+  capital as the excess of the tail bound over the expected value.
+
+  Designed as the pipeline-friendly companion to SCRReport: use SCRReport when producing
+  regulatory submissions with coverage tables and markdown output; use
+  solvency_capital_range() when you need SCR estimates inside a larger modelling workflow
+  (reserving systems, reinsurance optimisers, stress-testing loops).
+
+  Accepts optional `exposure` weights for policies with non-unit exposure periods.
+  Compatible with InsuranceConformalPredictor, LocallyWeightedConformal,
+  HongTransformConformal, and ConformalisedQuantileRegression.
+
 ## [0.6.2] - 2026-03-24
 
 ### Added
