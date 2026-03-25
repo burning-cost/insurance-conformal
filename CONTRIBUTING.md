@@ -38,3 +38,7 @@ uv run pytest --run-slow
 - UK English in docstrings and documentation
 - Docstrings follow NumPy format and note coverage guarantees explicitly — state whether coverage is marginal or conditional
 - Tests must verify actual coverage on synthetic data, not just that the code runs without error
+
+---
+
+For questions or to discuss ideas before opening an issue, start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions).
