@@ -141,6 +141,10 @@ print(intervals.head())
 # Note: lower=0.0 is expected — insurance losses are non-negative and the predictor clips at zero.
 ```
 
+---
+
+If this is useful, a ⭐ on GitHub helps others find it.
+
 ## Expected Performance
 
 On a 50,000-policy heteroskedastic Gamma UK motor book (CatBoost Tweedie(p=1.5), temporal 60/20/20 split, seed=42):
