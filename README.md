@@ -1,42 +1,77 @@
 # insurance-conformal
 
-[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml) [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/insurance-conformal/) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/burning-cost/insurance-conformal/blob/main/LICENSE) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/burning-cost-examples/blob/main/notebooks/burning-cost-in-30-minutes.ipynb)
-[![nbviewer](https://img.shields.io/badge/render-nbviewer-orange)](https://nbviewer.org/github/burning-cost/insurance-conformal/blob/main/notebooks/quickstart.ipynb)
+[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml) [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/insurance-conformal/) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/burning-cost/insurance-conformal/blob/main/LICENSE)
 
-Your Tweedie GBM's prediction intervals assume variance scales as mu^p across the whole book — an assumption that breaks on heterogeneous UK motor portfolios where high-mean risks are genuinely more dispersed than the parametric family predicts. insurance-conformal gives you distribution-free prediction intervals with a finite-sample coverage guarantee, 13–14% narrower than the parametric baseline on a heteroskedastic motor book.
+**Distribution-free prediction intervals for insurance pricing models — 13% narrower than parametric Tweedie, with a finite-sample coverage guarantee.**
 
 **Blog post:** [Conformal Prediction Intervals for Insurance Pricing Models](https://burning-cost.github.io/2026/03/06/conformal-prediction-intervals-for-insurance-pricing/)
 
 ---
 
-Your pricing model gives point estimates. A reserving actuary needs uncertainty bounds. A capital team needs 99.5th percentile estimates for the SCR. A reinsurer wants to know whether your stated 90% interval actually holds in the top risk decile. Parametric approaches answer these questions by assuming a distribution — and those assumptions break exactly where the stakes are highest: large, unusual risks.
+## The problem
 
-Conformal prediction provides a finite-sample valid alternative. The guarantee is `P(y in interval) >= 1 - alpha` for any data distribution, as long as calibration and test data are exchangeable. No parametric family required.
+Your pricing model gives point estimates. Your parametric prediction intervals assume variance scales as mu^p across the whole book — an assumption that breaks exactly where the stakes are highest: large, unusual risks.
 
-The non-obvious part is the non-conformity score. Most conformal implementations use the raw absolute residual `|y - yhat|`. For insurance data that is wrong: it treats a £1 error on a £100 risk identically to a £1 error on a £10,000 risk. The correct score for Tweedie models is the Pearson-weighted residual `|y - yhat| / yhat^(p/2)`, which normalises by the Tweedie standard deviation and produces exchangeable scores across risk levels. That is what this library implements.
+On a heterogeneous UK motor portfolio, parametric Tweedie intervals over-cover low-risk policies (unnecessary width) and under-cover the top risk decile — which is what drives reinsurance attachment, reserving, and SCR calculations.
 
----
+Conformal prediction fixes this. The guarantee is `P(y in interval) >= 1 - alpha` for any data distribution, as long as calibration and test data are exchangeable. No parametric family required.
 
-## Part of the Burning Cost stack
-
-Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-gam](https://github.com/burning-cost/insurance-gam) or [insurance-frequency-severity](https://github.com/burning-cost/insurance-frequency-severity). Feeds distribution-free prediction intervals into [insurance-optimise](https://github.com/burning-cost/insurance-optimise) (uncertainty-aware pricing) and [insurance-governance](https://github.com/burning-cost/insurance-governance) (PRA SS1/23 validation packs). → [See the full stack](https://burning-cost.github.io/stack/)
+The non-obvious implementation detail: most conformal libraries use raw absolute residuals `|y - yhat|`. For insurance data that is wrong — a £1 error on a £100 risk is not the same as a £1 error on a £10,000 risk. The correct score for Tweedie models is `|y - yhat| / yhat^(p/2)`, which normalises by the Tweedie standard deviation and produces exchangeable scores across risk levels. That is what this library implements.
 
 ---
 
-## Why use this?
+## Quick start
 
-- Parametric Tweedie prediction intervals use a single dispersion parameter estimated from the calibration set. On a heterogeneous UK motor book, this over-covers low-risk policies (unnecessary width) and under-covers high-risk policies — which is exactly where getting it wrong is most expensive.
-- Conformal prediction removes the distributional assumption. The only requirement is exchangeable calibration and test data. On 50,000 synthetic UK motor policies, conformal intervals are 13–14% narrower than parametric while meeting the 90% target, and the locally-weighted variant also meets it in the top risk decile.
-- The insurance-specific non-conformity scores (`pearson_weighted`: `|y - yhat| / yhat^(p/2)`) account for Tweedie heteroscedasticity. Using the raw absolute residual is the wrong default for insurance data.
-- Conformal Risk Control (`insurance_conformal.risk`) controls expected shortfall directly — find the smallest loading factor such that expected underpricing is bounded. A direct regulatory argument, not a statistical artefact.
-- `SCRReport` wraps any calibrated predictor and produces per-risk 99.5% upper bounds for internal stress-testing and model validation documentation.
-- The coverage guarantee is distribution-free and finite-sample valid. Suitable for PRA SS1/23 model validation packs.
+```python
+from insurance_conformal import InsuranceConformalPredictor
+
+# Wrap any fitted sklearn-compatible model
+cp = InsuranceConformalPredictor(
+    model=fitted_gbm,
+    nonconformity="pearson_weighted",  # correct default for Tweedie
+    tweedie_power=1.5,
+)
+
+# Calibrate on held-out data (must not overlap training)
+cp.calibrate(X_cal, y_cal)
+
+# 90% prediction intervals — polars DataFrame: lower, point, upper
+intervals = cp.predict_interval(X_test, alpha=0.10)
+
+# Always check per-decile coverage (marginal != conditional)
+print(cp.coverage_by_decile(X_test, y_test, alpha=0.10))
+```
+
+For locally-adaptive intervals (narrower on low-variance risks, wider on high-variance risks):
+
+```python
+from insurance_conformal import LocallyWeightedConformal
+
+lw = LocallyWeightedConformal(model=fitted_gbm, tweedie_power=1.5)
+lw.fit(X_train, y_train)
+lw.calibrate(X_cal, y_cal)
+intervals = lw.predict_interval(X_test, alpha=0.10)
+```
 
 ---
 
-## Comparison: conformal vs parametric bootstrap
+## Why a pricing actuary should care
 
-| | Parametric Tweedie | `pearson_weighted` conformal | Locally-weighted conformal |
+**Accuracy where it matters.** Parametric Tweedie intervals produce 93% aggregate coverage at a 90% target — fine in aggregate, but that surplus width sits on low-risk policies. The top-risk decile that drives reinsurance and reserving gets marginal coverage at best, and on books with more pronounced tail heteroscedasticity it will miss the target.
+
+**Regulatory defensibility.** The distribution-free guarantee does not rely on model fit. You can write "P(claim in interval) >= 90%, finite-sample valid, no parametric assumptions" in a PRA SS1/23 validation pack. You cannot write that for a parametric bootstrap interval.
+
+**SCR calculations.** `SCRReport` produces per-risk 99.5% upper bounds with a coverage validation table — exactly the format needed for internal model stress-testing documentation.
+
+**Premium sufficiency control.** `PremiumSufficiencyController` finds the smallest loading factor such that expected underpricing shortfall is bounded at alpha. A direct regulatory argument, not a statistical artefact.
+
+---
+
+## Performance on a realistic motor book
+
+CatBoost Tweedie(p=1.5), 50,000 synthetic UK motor policies, heteroskedastic Gamma DGP, temporal 60/20/20 split.
+
+| | Parametric Tweedie | Conformal (`pearson_weighted`) | Locally-weighted conformal |
 |---|---|---|---|
 | Distribution assumption | Tweedie Var ~ mu^p | None | None |
 | Aggregate coverage @ 90% target | 93.1% (over-covers) | 90.2% | 90.3% |
@@ -44,11 +79,8 @@ Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-ga
 | Mean interval width | £4,393 | £3,806 (−13.4%) | £3,881 (−11.7%) |
 | Width adapts per risk segment | No | Partial | Yes |
 | Finite-sample valid guarantee | No | Yes | Yes |
-| Requires refitting on calibration | No | No | No |
 
-Benchmark: CatBoost Tweedie(p=1.5), 50k synthetic UK motor policies, heteroskedastic Gamma DGP, temporal 60/20/20 split, seed=42. Run: `benchmarks/benchmark_gbm.py`.
-
-The parametric aggregate of 93.1% at a 90% target signals over-width on low-risk policies. The top decile just barely meets target at 90.4% — but that is coincidental; on a book with more pronounced tail heteroscedasticity it would miss. The locally-weighted conformal variant learns which features predict large residuals and adapts width accordingly: it meets the 90% target in the top decile by construction.
+The locally-weighted variant meets the 90% target in the top decile by construction — the parametric baseline only coincidentally passes it on this dataset. Run the validation: import `notebooks/databricks_validation.py` into Databricks.
 
 ---
 
@@ -77,129 +109,107 @@ uv add insurance-conformal
 
 ---
 
-## Quick start
+## Worked examples
+
+### 1. Motor frequency-severity model with per-decile coverage audit
 
 ```python
-import numpy as np
-from insurance_conformal import InsuranceConformalPredictor
-
-# --- 1. Your fitted model (any sklearn-compatible predictor) ---
-# Here we use a simple example; in production this is your Tweedie GBM
-from sklearn.linear_model import TweedieRegressor
-rng = np.random.default_rng(42)
-n_train, n_cal, n_test = 10_000, 2_000, 2_000
-X_train = rng.standard_normal((n_train, 5))
-y_train = rng.gamma(shape=1.5, scale=300, size=n_train)
-X_cal   = rng.standard_normal((n_cal, 5))
-y_cal   = rng.gamma(shape=1.5, scale=300, size=n_cal)
-X_test  = rng.standard_normal((n_test, 5))
-
-model = TweedieRegressor(power=1.5, link="log")
-model.fit(X_train, y_train)
-
-# --- 2. Wrap with conformal predictor ---
-cp = InsuranceConformalPredictor(
-    model=model,
-    nonconformity="pearson_weighted",  # recommended for Tweedie models
-    distribution="tweedie",
-    tweedie_power=1.5,
-)
-
-# --- 3. Calibrate on held-out data (must not overlap with training) ---
-cp.calibrate(X_cal, y_cal)
-
-# --- 4. Generate 90% prediction intervals ---
-intervals = cp.predict_interval(X_test, alpha=0.10)
-# polars DataFrame with columns: lower, point, upper
-
-# --- 5. Check coverage by decile (always do this) ---
-y_test = rng.gamma(shape=1.5, scale=300, size=n_test)
-print(cp.coverage_by_decile(X_test, y_test, alpha=0.10))
-```
-
-For locally-adaptive intervals (narrower on low-variance risks, wider on high-variance risks):
-
-```python
-from insurance_conformal import LocallyWeightedConformal
-
-lw = LocallyWeightedConformal(model=model, tweedie_power=1.5)
-lw.fit(X_train, y_train)
-lw.calibrate(X_cal, y_cal)
-intervals = lw.predict_interval(X_test, alpha=0.10)
-```
-## Features
-
-- `InsuranceConformalPredictor` — split conformal prediction wrapping any sklearn-compatible model. Supports `pearson_weighted`, `pearson`, `deviance`, `anscombe`, and `raw` non-conformity scores.
-- `LocallyWeightedConformal` — two-stage conformal with a secondary spread model. Learns which features predict large residuals. Meets per-decile coverage targets that standard conformal misses. Supports CatBoost and LightGBM spread models.
-- `ConformalisedQuantileRegression` — split CQR (Romano, Patterson & Candes 2019). Wraps pre-fitted quantile models with a conformal calibration correction. Works with CatBoost `Quantile:alpha=`, LightGBM `objective=quantile`, sklearn `loss=quantile`.
-- `FrequencySeverityConformal` — correct conformity scoring protocol for two-stage frequency-severity models (Graziadei et al. 2023). Feeds predicted frequency (not observed count) into the severity model at calibration time, preserving exchangeability.
-- `SCRReport` — per-risk 99.5% upper bounds with coverage validation table. For internal stress-testing and PRA SS1/23 model validation documentation.
-- `solvency_capital_range()` — lightweight functional API for SCR bounds, returns a `SolvencyCapitalRange` dataclass. Use inside pipelines when you don't need the full `SCRReport`.
-- `insurance_conformal.risk` — Conformal Risk Control (Angelopoulos et al., ICLR 2024). Controls expected loss directly. `PremiumSufficiencyController`: find the smallest loading factor such that expected underpricing shortfall is bounded. `IntervalWidthController`, `SelectiveRiskController`.
-- `RetroAdj` — online conformal with retrospective adjustment (Jun & Ohn 2025). Recovers from abrupt distribution shifts (claims inflation, Ogden rate changes) within 1–3 steps. KRR base model or residual-only mode for existing GBMs.
-- `CoverageDiagnostics` — coverage-by-decile plots and interval width distribution. `subgroup_coverage()` for coverage by arbitrary segment (age band, vehicle group, area).
-- `insurance_conformal.multivariate` — joint multi-output conformal prediction for simultaneous frequency/severity intervals. `JointConformalPredictor`, `SolvencyCapitalEstimator`.
-
----
-
-## Expected Performance
-
-On a 50,000-policy heteroskedastic Gamma UK motor book (CatBoost Tweedie(p=1.5), temporal 60/20/20 split, seed=42):
-
-| Metric | Parametric Tweedie | Conformal (pearson_weighted) | LW Conformal |
-|--------|-------------------|------------------------------|--------------|
-| Aggregate coverage @ 90% | 0.931 | 0.902 | 0.903 |
-| Top-decile coverage @ 90% | 0.904 | 0.879 | 0.906 |
-| Mean interval width (£) | 4,393 | 3,806 | 3,881 |
-| Width vs parametric | ref | −13.4% | −11.7% |
-| Distribution-free guarantee | No | Yes | Yes |
-
-The parametric aggregate of 93.1% at a 90% target signals over-width on low-risk policies. Conformal is 13.4% narrower with a valid coverage guarantee. LW conformal also meets the 90% target in the top decile — the one that drives reinsurance attachment and reserving decisions.
-
-Run the validation: import `notebooks/databricks_validation.py` into Databricks.
-
----
-
-## Coverage diagnostics
-
-The marginal coverage guarantee means `P(y in interval) >= 1 - alpha` averaged over all observations. In insurance, you also need to check that coverage is uniform across risk deciles — a model can achieve 90% overall while only covering 65% of high-risk policies.
-
-```python
-# Check coverage by decile (always run this after calibration)
-diag = cp.coverage_by_decile(X_test, y_test, alpha=0.10)
-print(diag)
-#    decile  mean_predicted  n_obs  coverage  target_coverage
-# 0       1          0.0234    400     0.923             0.90
-# ...
-# 9      10          2.3410    400     0.905             0.90
-
-# Full summary
-cp.summary(X_test, y_test, alpha=0.10)
-
-# Coverage by arbitrary segment (age band, vehicle group, area)
+from sklearn.linear_model import PoissonRegressor, GammaRegressor
+from insurance_conformal.claims import FrequencySeverityConformal
 from insurance_conformal import subgroup_coverage
+
+fs = FrequencySeverityConformal(
+    freq_model=PoissonRegressor(),
+    sev_model=GammaRegressor(),
+)
+fs.fit(X_train, d_train, y_train)   # d_train = observed claim counts
+fs.calibrate(X_cal, d_cal, y_cal)
+intervals = fs.predict_interval(X_test, alpha=0.10)
+
+# Coverage by vehicle group
 sg = subgroup_coverage(
-    predictor=cp,
+    predictor=fs,
     X_test=X_test,
     y_test=y_test,
     alpha=0.10,
     groups=vehicle_group_band,
     group_name="vehicle_group_band",
 )
-
-# Matplotlib plots
-from insurance_conformal import CoverageDiagnostics
-intervals = cp.predict_interval(X_test, alpha=0.10)
-diag_tool = CoverageDiagnostics(
-    y_true=y_test,
-    y_lower=intervals["lower"].to_numpy(),
-    y_upper=intervals["upper"].to_numpy(),
-    y_pred=intervals["point"].to_numpy(),
-    alpha=0.10,
-)
-fig = diag_tool.coverage_plot()
-fig2 = diag_tool.interval_width_distribution()
+print(sg)
 ```
+
+The calibration subtlety here: using the observed claim count in the severity model at calibration time creates a distributional mismatch that breaks the coverage guarantee. `FrequencySeverityConformal` feeds the predicted frequency (not the observed count) into the severity model at both calibration and test time. See Graziadei et al. (2023) for the proof.
+
+### 2. Premium sufficiency control — bound expected underpricing
+
+Useful when a pricing review requires a documented guarantee that expected shortfall from underpriced policies stays below a threshold.
+
+```python
+from insurance_conformal.risk import PremiumSufficiencyController
+
+psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
+psc.calibrate(y_cal, premium_cal)   # calibrate on held-out year
+result = psc.predict(premium_new)   # apply to next year's book
+
+# result["lambda_hat"]: the loading factor such that E[shortfall] <= 5%
+# result["upper_bound"]: risk-controlled loaded premium per policy
+print(f"Required loading: {result['lambda_hat']:.3f}")
+```
+
+### 3. SCR bounds for internal model documentation
+
+```python
+from insurance_conformal import InsuranceConformalPredictor, SCRReport
+
+cp = InsuranceConformalPredictor(model=fitted_model)
+cp.calibrate(X_cal, y_cal)
+
+scr = SCRReport(predictor=cp)
+scr_bounds = scr.solvency_capital_requirement(X_test, alpha=0.005)
+val_table  = scr.coverage_validation_table(X_test, y_test)
+print(scr.to_markdown())
+```
+
+> **Disclaimer:** `SCRReport` is an internal stress-testing tool. Solvency II SCR calculations for regulatory purposes require sign-off under an approved internal model or the standard formula. Do not use this output in regulatory returns without appropriate actuarial review, governance sign-off, and alignment with your firm's approved methodology.
+
+### 4. Recovering from mid-year claims inflation (Ogden rate change, CAT event)
+
+Standard conformal with a static calibration set breaks when the book shifts mid-year. `RetroAdj` recovers within 1–3 steps by retroactively correcting all leave-one-out residuals in the sliding window simultaneously.
+
+```python
+from insurance_conformal import RetroAdj
+
+# Residual-only mode: wrap an existing GLM or GBM
+resid_train = y_train - glm.predict(X_train)
+resid_test  = y_test  - glm.predict(X_test)
+
+model = RetroAdj(window_size=250, gamma=0.005)
+model.fit(resid_train)
+lower_r, upper_r = model.predict_interval(resid_test, alpha=0.10)
+
+lower_claims = lower_r + glm.predict(X_test)
+upper_claims = upper_r + glm.predict(X_test)
+```
+
+| Metric | RetroAdj | Standard ACI |
+|--------|----------|-----|
+| Steps to recover 90% coverage after +30% inflation shock | ~15–30 | ~80–150 |
+| Post-shift coverage (full window) | ~88–91% | ~80–87% |
+
+---
+
+## Features
+
+- `InsuranceConformalPredictor` — split conformal prediction wrapping any sklearn-compatible model. Non-conformity scores: `pearson_weighted`, `pearson`, `deviance`, `anscombe`, `raw`.
+- `LocallyWeightedConformal` — two-stage conformal with a secondary spread model. Meets per-decile coverage targets that standard conformal misses.
+- `ConformalisedQuantileRegression` — split CQR (Romano et al., 2019). Wraps pre-fitted quantile models. Works with CatBoost `Quantile:alpha=`, LightGBM `objective=quantile`.
+- `FrequencySeverityConformal` — correct conformity scoring for two-stage frequency-severity models (Graziadei et al., 2023).
+- `SCRReport` — per-risk 99.5% upper bounds with coverage validation table. For PRA SS1/23 model documentation.
+- `solvency_capital_range()` — functional API for SCR bounds inside pipelines.
+- `insurance_conformal.risk` — Conformal Risk Control (Angelopoulos et al., ICLR 2024). `PremiumSufficiencyController`, `IntervalWidthController`, `SelectiveRiskController`.
+- `RetroAdj` — online conformal with retrospective adjustment (Jun & Ohn, 2025). Recovers from abrupt distribution shifts within 1–3 steps.
+- `CoverageDiagnostics` — coverage-by-decile plots, interval width distributions, subgroup coverage by arbitrary segment.
+- `insurance_conformal.multivariate` — joint multi-output conformal for simultaneous frequency/severity intervals.
 
 ---
 
@@ -213,13 +223,13 @@ fig2 = diag_tool.interval_width_distribution()
 | `anscombe` | Anscombe transform | Variance-stabilising alternative to deviance. |
 | `raw` | `\|y - yhat\|` | Baseline only. Not appropriate for insurance data. |
 
-Width hierarchy (narrowest first, coverage identical): `pearson_weighted <= deviance <= anscombe < pearson < raw`. Ordering is approximate and depends on Tweedie power.
+Width hierarchy (narrowest first, coverage identical): `pearson_weighted <= deviance <= anscombe < pearson < raw`.
 
 ---
 
 ## Temporal calibration
 
-In insurance, calibrate on recent data to capture current loss trends:
+Calibrate on recent data to capture current loss trends:
 
 ```python
 from insurance_conformal.utils import temporal_split
@@ -234,133 +244,19 @@ model.fit(X_train, y_train)
 cp.calibrate(X_cal, y_cal)
 ```
 
----
-
-## Conformal Risk Control
-
-Standard conformal controls coverage probability. For insurance pricing the question that matters is different: how much are we underpriced, in expectation?
-
-`insurance_conformal.risk` implements Conformal Risk Control (CRC, Angelopoulos et al., ICLR 2024), which controls expected loss directly: `E[L(C_lambda(X), Y)] <= alpha` for any bounded monotone loss L. Finite-sample valid, no parametric assumptions.
-
-**Lead use case: premium sufficiency control.** Find the smallest loading factor lambda* such that expected shortfall from underpriced policies is bounded:
-
-```python
-from insurance_conformal.risk import PremiumSufficiencyController
-
-psc = PremiumSufficiencyController(alpha=0.05, B=5.0)
-psc.calibrate(y_cal, premium_cal)   # calibrate on held-out year
-result = psc.predict(premium_new)   # apply to next year's book
-# result["upper_bound"]: risk-controlled loading factor per policy
-# result["lambda_hat"]: the single lambda* that achieves E[shortfall] <= 5%
-```
-
-| Controller | Use case |
-|---|---|
-| `PremiumSufficiencyController` | Bound expected underpricing shortfall: E[max(claim - lambda * premium, 0) / premium] <= alpha |
-| `IntervalWidthController` | Find the most efficient conformal quantile level that still bounds expected interval width |
-| `SelectiveRiskController` | Accept/reject risks to bound expected loss on the accepted book |
-
----
-
-## FrequencySeverityConformal
-
-Conformal prediction intervals for frequency-severity insurance models (Graziadei et al. arXiv:2307.13124).
-
-The calibration subtlety: using the observed claim count in the severity model at calibration time creates a distributional mismatch that breaks the coverage guarantee. The correct approach is to feed the predicted frequency (not the observed count) into the severity model at both calibration and test time.
-
-```python
-from sklearn.linear_model import PoissonRegressor, GammaRegressor
-from insurance_conformal.claims import FrequencySeverityConformal
-
-fs = FrequencySeverityConformal(
-    freq_model=PoissonRegressor(),
-    sev_model=GammaRegressor(),
-)
-
-fs.fit(X_train, d_train, y_train)   # d_train = observed claim counts
-fs.calibrate(X_cal, d_cal, y_cal)   # d_cal for validation only; scores use mu_hat(x)
-intervals = fs.predict_interval(X_test, alpha=0.10)
-# polars DataFrame with columns: lower, point, upper
-```
-
----
-
-## SCRReport
-
-Per-risk 99.5% upper bounds for internal stress-testing and model validation.
-
-```python
-from insurance_conformal import InsuranceConformalPredictor, SCRReport
-
-cp = InsuranceConformalPredictor(model=fitted_model)
-cp.calibrate(X_cal, y_cal)
-scr = SCRReport(predictor=cp)
-scr_bounds = scr.solvency_capital_requirement(X_test, alpha=0.005)
-val_table = scr.coverage_validation_table(X_test, y_test)
-print(scr.to_markdown())
-```
-
-Or use the functional API inside a pipeline:
-
-```python
-from insurance_conformal import solvency_capital_range
-
-result = solvency_capital_range(predictor=cp, X=X_test, alpha=0.005)
-# result.scr_estimate, result.lower_bound, result.upper_bound
-# result.total_scr, result.mean_interval_width
-```
-
-> **Disclaimer**: SCRReport is an internal stress-testing tool. Solvency II SCR calculations for regulatory purposes require sign-off under an approved internal model or the standard formula. Do not use this output in regulatory returns without appropriate actuarial review, governance sign-off, and alignment with your firm's approved methodology.
-
----
-
-## RetroAdj: online conformal for distribution shifts
-
-Standard conformal with a static calibration set breaks when the book shifts mid-year — claims inflation, Ogden rate changes, CAT events. ACI (Adaptive Conformal Inference) adapts by nudging the miscoverage level one step at a time, but at gamma=0.005 it needs ~200 steps to reprice. That is 17 years of monthly data — not adaptation.
-
-`RetroAdj` (Jun & Ohn 2025, arXiv:2511.04275) fixes this by retroactively correcting all leave-one-out residuals in the sliding window simultaneously at each step. After an abrupt shift, coverage recovers within 1–3 steps.
-
-```python
-from insurance_conformal import RetroAdj
-
-# KRR base model
-model = RetroAdj(bandwidth=1.0, lambda_reg=0.1, window_size=250, gamma=0.005)
-model.fit(y_train, X_train)
-lower, upper = model.predict_interval(y_test, X_test, alpha=0.10)
-
-# Residual-only mode: wrap an existing GLM or GBM
-resid_train = y_train - glm.predict(X_train)
-resid_test  = y_test  - glm.predict(X_test)
-model2 = RetroAdj(window_size=250)
-model2.fit(resid_train)
-lower_r, upper_r = model2.predict_interval(resid_test, alpha=0.10)
-lower_claims = lower_r + glm.predict(X_test)
-upper_claims = upper_r + glm.predict(X_test)
-```
-
-**Hard constraint:** the base model must be kernel ridge regression or another self-stable linear smoother. GLMs and GBMs do not qualify for the full method — use residual-only mode.
-
-**Recovery speed after a +30% claims inflation event (gamma=0.005, window=200):**
-
-| Metric | RetroAdj | ACI |
-|--------|----------|-----|
-| Steps to recover 90% coverage | ~15–30 | ~80–150 |
-| Post-shift coverage (full window) | ~88–91% | ~80–87% |
-| Speedup | 3–8x faster | baseline |
+Target `n_cal >= 2,000` for stable production use. The guarantee holds for any `n_cal >= 1`, but below 500 interval widths are materially wider and more variable.
 
 ---
 
 ## Coverage guarantee
 
-Split conformal prediction provides the following guarantee for exchangeable data:
+Split conformal provides:
 
 ```
 P(y_test in [lower, upper]) >= 1 - alpha
 ```
 
-This is distribution-free — it holds regardless of the true data distribution or model misspecification. The assumption is exchangeability: calibration and test observations must be drawn from the same distribution. Temporal covariate shift violates this assumption and can degrade coverage in practice. Use temporal calibration splits (calibrate on the most recent accident year before the test period) to minimise the distribution gap.
-
-For calibration set size: target n_cal >= 2,000 for stable production use. The guarantee holds for any n_cal >= 1, but with n_cal < 500 the quantile estimate has high variance and intervals will be materially wider and more variable.
+Distribution-free — holds regardless of the true data distribution or model misspecification. The assumption is exchangeability: calibration and test observations drawn from the same distribution. Temporal covariate shift violates this — use temporal calibration splits and monitor coverage via `RetroAdj` if abrupt shifts are expected.
 
 ---
 
@@ -372,18 +268,24 @@ For calibration set size: target n_cal >= 2,000 for stable production use. The g
 
 **Polars-native output.** All prediction and diagnostic methods return `pl.DataFrame`. Pandas inputs are accepted.
 
-**Lower bound clipped at zero.** Insurance losses are non-negative. Prediction intervals with negative lower bounds are nonsensical. We clip at zero unconditionally.
+**Lower bound clipped at zero.** Insurance losses are non-negative. Intervals with negative lower bounds are nonsensical. We clip at zero unconditionally.
 
-**Auto-detection of Tweedie power.** For CatBoost, the power parameter is read from the loss function string. For sklearn `TweedieRegressor`, from `model.power`. If detection fails, we warn and default to p=1.5. Pass `tweedie_power=` explicitly if you know the correct value.
+**Auto-detection of Tweedie power.** For CatBoost, read from the loss function string. For sklearn `TweedieRegressor`, from `model.power`. Pass `tweedie_power=` explicitly to override.
 
 ---
 
 ## Limitations
 
-- Coverage is marginal, not conditional. The conformal guarantee holds on average. High-risk subgroups can be systematically under-covered even when aggregate coverage meets the target. Always run `coverage_by_decile()` after calibration.
-- Exchangeability is violated by portfolio drift. Mid-year claims inflation, Ogden rate changes, or significant portfolio mix shifts break the exchangeability assumption. Use temporal calibration splits and monitor coverage via `RetroAdj` if abrupt shifts are expected.
+- Coverage is marginal, not conditional. The guarantee holds on average. High-risk subgroups can be systematically under-covered even when aggregate coverage meets the target. Always run `coverage_by_decile()` after calibration.
+- Exchangeability is violated by portfolio drift. Mid-year claims inflation, Ogden rate changes, or significant portfolio mix shifts break the exchangeability assumption. Use temporal calibration splits and monitor via `RetroAdj`.
 - IBNR on recent accident years produces intervals that are too narrow. Calibrating on development-year 0 or 1 data means non-conformity scores are computed on understated claim totals. Use only accident years with at least 3 years of development, or apply IBNR chain-ladder factors to `y_cal` before calibration.
-- `RetroAdj` requires kernel ridge regression as the base model. Use residual-only mode for existing GLMs or GBMs.
+- `RetroAdj` full method requires kernel ridge regression as the base model. Use residual-only mode for existing GLMs or GBMs.
+
+---
+
+## Part of the Burning Cost stack
+
+Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-gam](https://github.com/burning-cost/insurance-gam) or [insurance-frequency-severity](https://github.com/burning-cost/insurance-frequency-severity). Feeds distribution-free prediction intervals into [insurance-optimise](https://github.com/burning-cost/insurance-optimise) (uncertainty-aware pricing) and [insurance-governance](https://github.com/burning-cost/insurance-governance) (PRA SS1/23 validation packs). → [See the full stack](https://burning-cost.github.io/stack/)
 
 ---
 
@@ -450,8 +352,6 @@ Want structured learning? [Insurance Pricing in Python](https://burning-cost.git
 - **Questions?** Start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions)
 - **Found a bug?** Open an [Issue](https://github.com/burning-cost/insurance-conformal/issues)
 - **Blog & tutorials:** [burning-cost.github.io](https://burning-cost.github.io)
-
-> Questions or feedback? Start a [Discussion](https://github.com/burning-cost/insurance-conformal/discussions). Found it useful? A star helps others find it.
 
 ## Licence
 
