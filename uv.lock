@@ -436,7 +436,7 @@ wheels = [
 
 [[package]]
 name = "insurance-conformal"
-version = "0.6.2"
+version = "0.6.3"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -480,6 +480,11 @@ plot = [
     { name = "matplotlib" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest-cov" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "catboost", marker = "extra == 'all'", specifier = ">=1.2" },
@@ -491,21 +496,24 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'all'", specifier = ">=3.6" },
     { name = "matplotlib", marker = "extra == 'dev'", specifier = ">=3.6" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6" },
-    { name = "numpy", specifier = ">=1.25" },
+    { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.0" },
     { name = "pdoc", marker = "extra == 'dev'", specifier = ">=14.0.0" },
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.1.1" },
     { name = "polars", specifier = ">=1.0" },
-    { name = "pyarrow", specifier = ">=12.0" },
+    { name = "pyarrow", specifier = ">=14.0" },
     { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=21.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "scikit-learn", specifier = ">=1.3" },
-    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.3" },
-    { name = "scipy", specifier = ">=1.10" },
+    { name = "scikit-learn", specifier = ">=1.6" },
+    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.6" },
+    { name = "scipy", specifier = ">=1.12" },
 ]
 provides-extras = ["catboost", "lightgbm", "plot", "all", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest-cov", specifier = ">=7.0.0" }]
 
 [[package]]
 name = "jinja2"

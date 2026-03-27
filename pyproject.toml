@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.6.3"
+version = "0.6.4"
 description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
 readme = "README.md"
 license = "MIT"
@@ -49,15 +49,13 @@ dependencies = [
     "scipy>=1.12",
     "pyarrow>=14.0",
     "scikit-learn>=1.6",
-    # Security floor constraint (transitive via matplotlib)
-    "pillow>=12.1.1",
 ]
 
 [project.optional-dependencies]
 catboost = ["catboost>=1.2"]
 lightgbm = ["lightgbm>=4.0"]
-plot = ["matplotlib>=3.6"]
-all = ["catboost>=1.2", "lightgbm>=4.0", "matplotlib>=3.6"]
+plot = ["matplotlib>=3.6", "pillow>=12.1.1"]
+all = ["catboost>=1.2", "lightgbm>=4.0", "matplotlib>=3.6", "pillow>=12.1.1"]
 dev = [
     "pytest>=8.4",
     "pyarrow>=21.0",

@@ -288,3 +288,69 @@ class TestCoverageDiagnostics:
         )
         assert (df["coverage"] >= 0).all()
         assert (df["coverage"] <= 1).all()
+
+
+# ---------------------------------------------------------------------------
+# Backend selection (auto / sklearn)
+# ---------------------------------------------------------------------------
+
+
+class TestBackendSelection:
+    def test_default_backend_is_auto(self, synthetic_data):
+        lw = LocallyWeightedConformal(model=synthetic_data["model"])
+        assert lw.backend == "auto"
+
+    def test_invalid_backend_raises(self, synthetic_data):
+        with pytest.raises(ValueError, match="backend must be one of"):
+            LocallyWeightedConformal(model=synthetic_data["model"], backend="xgboost")
+
+    def test_sklearn_backend_fits_without_optional_deps(self, synthetic_data):
+        """sklearn backend must work with no optional dependencies installed."""
+        lw = LocallyWeightedConformal(
+            model=synthetic_data["model"],
+            tweedie_power=1.0,
+            backend="sklearn",
+        )
+        lw.fit(synthetic_data["X_train"], synthetic_data["y_train"])
+        assert lw.spread_model_ is not None
+        assert lw.backend_ == "sklearn"
+
+    def test_sklearn_backend_calibrates_and_predicts(self, synthetic_data):
+        """Full pipeline with sklearn backend must produce valid intervals."""
+        lw = LocallyWeightedConformal(
+            model=synthetic_data["model"],
+            tweedie_power=1.0,
+            backend="sklearn",
+        )
+        lw.fit(synthetic_data["X_train"], synthetic_data["y_train"])
+        lw.calibrate(synthetic_data["X_cal"], synthetic_data["y_cal"])
+        intervals = lw.predict_interval(synthetic_data["X_test"], alpha=0.10)
+
+        assert isinstance(intervals, pl.DataFrame)
+        assert set(intervals.columns) == {"lower", "point", "upper", "spread"}
+        assert (intervals["lower"] >= 0).all()
+        assert (intervals["lower"] <= intervals["upper"]).all()
+
+    def test_auto_backend_resolves_and_records(self, synthetic_data):
+        """backend='auto' must set backend_ after fit()."""
+        lw = LocallyWeightedConformal(
+            model=synthetic_data["model"],
+            tweedie_power=1.0,
+            backend="auto",
+        )
+        assert lw.backend_ is None  # not yet resolved
+        lw.fit(synthetic_data["X_train"], synthetic_data["y_train"])
+        # After fit, backend_ should be one of the valid concrete backends
+        assert lw.backend_ in ("catboost", "lightgbm", "sklearn")
+
+    def test_auto_repr_shows_resolution(self, synthetic_data):
+        """repr() for backend='auto' should show what was resolved."""
+        lw = LocallyWeightedConformal(
+            model=synthetic_data["model"],
+            tweedie_power=1.0,
+            backend="auto",
+        )
+        lw.fit(synthetic_data["X_train"], synthetic_data["y_train"])
+        r = repr(lw)
+        # Should contain "auto ->" to signal the resolved backend
+        assert "auto ->" in r

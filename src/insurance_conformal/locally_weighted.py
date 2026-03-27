@@ -26,6 +26,7 @@ Fitting it on calibration data would leak information into the scores.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any, Optional
 
 import numpy as np
@@ -34,22 +35,55 @@ import polars as pl
 from insurance_conformal.utils import as_numpy, conformal_quantile
 
 
+def _resolve_backend(requested: str) -> str:
+    """
+    Resolve the effective backend for the spread model.
+
+    For backend="auto", tries catboost -> lightgbm -> sklearn in order.
+    Returns the name of the first available backend.
+
+    Parameters
+    ----------
+    requested : str
+        One of "auto", "catboost", "lightgbm", "sklearn".
+
+    Returns
+    -------
+    str
+        The resolved backend name.
+    """
+    if requested == "auto":
+        try:
+            import catboost  # noqa: F401
+            return "catboost"
+        except ImportError:
+            pass
+        try:
+            import lightgbm  # noqa: F401
+            return "lightgbm"
+        except ImportError:
+            pass
+        return "sklearn"
+
+    return requested
+
+
 class LocallyWeightedConformal:
     """
     Two-stage conformal prediction with a secondary spread model.
 
     Stage 1: fit the base insurance model f_hat (passed in, already fitted).
     Stage 2: fit a secondary model rho_hat on |Pearson residuals|
-             from the training set. Supports CatBoost (default) or LightGBM.
+             from the training set. Supports CatBoost, LightGBM, or sklearn GBM.
     Calibration: compute locally-weighted scores on the calibration set.
     Prediction: use rho_hat(x) to produce adaptive-width intervals.
 
     The key design choice: use a GBM for the secondary model, not a GLM.
     The residual spread may be a complex function of features — a GBM captures
     this better than a parametric spread model while remaining interpretable
-    via SHAP. CatBoost is the default, consistent with the rest of our stack.
-    LightGBM is available as an alternative (the Manna et al. 2507.06921 paper
-    uses LightGBM specifically).
+    via SHAP. CatBoost is preferred when available (consistent with the rest of
+    our stack). LightGBM is the alternative used in Manna et al. 2507.06921.
+    sklearn's GradientBoostingRegressor is the always-available fallback.
 
     Parameters
     ----------
@@ -58,19 +92,34 @@ class LocallyWeightedConformal:
     tweedie_power : float, default 1.5
         Tweedie variance power p. Used in the Pearson score denominator
         yhat^(p/2). Set p=1.0 for Poisson, p=2.0 for Gamma.
-    backend : str, default "catboost"
-        Secondary spread model backend. Either "catboost" or "lightgbm".
-        "catboost" requires the catboost package.
-        "lightgbm" requires the lightgbm package.
+    backend : str, default "auto"
+        Secondary spread model backend. One of "auto", "catboost", "lightgbm",
+        or "sklearn".
+
+        - "auto" (default): tries catboost, then lightgbm, then sklearn
+          GradientBoostingRegressor. Picks the first available package.
+          Use this for maximum compatibility without extra install steps.
+        - "catboost": requires the catboost package. Install with
+          ``pip install 'insurance-conformal[catboost]'``.
+        - "lightgbm": requires the lightgbm package. Install with
+          ``pip install 'insurance-conformal[lightgbm]'``.
+        - "sklearn": uses sklearn GradientBoostingRegressor. Always available
+          since sklearn is a hard dependency. Slightly slower than CatBoost
+          or LightGBM but requires no extra install.
+
     spread_model_params : dict, optional
-        CatBoost parameters for the secondary spread model when backend="catboost".
-        Defaults to a sensible set: 300 trees, learning_rate=0.05, RMSE loss.
-        Override to tune the secondary model — but be careful not to
-        overfit it, since overfitting rho_hat will shrink calibration scores
-        artificially and hurt coverage.
+        CatBoost parameters for the secondary spread model when backend="catboost"
+        or resolved to "catboost" by "auto". Defaults to a sensible set: 300
+        trees, learning_rate=0.05, RMSE loss. Override to tune the secondary
+        model — but be careful not to overfit it, since overfitting rho_hat
+        will shrink calibration scores artificially and hurt coverage.
     lgbm_spread_model_params : dict, optional
-        LightGBM parameters for the secondary spread model when backend="lightgbm".
-        Defaults to a sensible set: 300 trees, learning_rate=0.05, regression loss.
+        LightGBM parameters for the secondary spread model when backend="lightgbm"
+        or resolved to "lightgbm" by "auto". Defaults to a sensible set: 300
+        trees, learning_rate=0.05, regression loss.
+    sklearn_spread_model_params : dict, optional
+        sklearn GradientBoostingRegressor parameters when backend="sklearn" or
+        resolved to "sklearn" by "auto". Defaults to 300 trees, learning_rate=0.05.
     clip_spread_at : float, default 0.01
         Minimum value for rho_hat. Prevents division-by-zero when the
         secondary model predicts near-zero spread.
@@ -79,6 +128,9 @@ class LocallyWeightedConformal:
     ----------
     spread_model_ : fitted model
         Fitted secondary spread model. Available after fit().
+    backend_ : str
+        The resolved backend actually used (e.g. "catboost" when backend="auto"
+        and catboost is installed). Check this to see which backend was selected.
     cal_scores_ : np.ndarray
         Locally-weighted non-conformity scores from calibration set.
     n_calibration_ : int
@@ -88,15 +140,29 @@ class LocallyWeightedConformal:
 
     Examples
     --------
-    >>> lw = LocallyWeightedConformal(model=fitted_catboost, tweedie_power=1.5)
+    >>> lw = LocallyWeightedConformal(model=fitted_model, tweedie_power=1.5)
     >>> lw.fit(X_train, y_train)
     >>> lw.calibrate(X_cal, y_cal)
     >>> intervals = lw.predict_interval(X_test, alpha=0.10)
+
+    Explicit CatBoost backend:
+
+    >>> lw = LocallyWeightedConformal(
+    ...     model=fitted_model, tweedie_power=1.5, backend="catboost"
+    ... )
+    >>> lw.fit(X_train, y_train)
 
     LightGBM backend:
 
     >>> lw = LocallyWeightedConformal(
     ...     model=fitted_model, tweedie_power=1.5, backend="lightgbm"
+    ... )
+    >>> lw.fit(X_train, y_train)
+
+    sklearn fallback (no extra dependencies):
+
+    >>> lw = LocallyWeightedConformal(
+    ...     model=fitted_model, tweedie_power=1.5, backend="sklearn"
     ... )
     >>> lw.fit(X_train, y_train)
     """
@@ -105,14 +171,16 @@ class LocallyWeightedConformal:
         self,
         model: Any,
         tweedie_power: float = 1.5,
-        backend: str = "catboost",
+        backend: str = "auto",
         spread_model_params: Optional[dict] = None,
         lgbm_spread_model_params: Optional[dict] = None,
+        sklearn_spread_model_params: Optional[dict] = None,
         clip_spread_at: float = 0.01,
     ) -> None:
-        if backend not in ("catboost", "lightgbm"):
+        valid_backends = ("auto", "catboost", "lightgbm", "sklearn")
+        if backend not in valid_backends:
             raise ValueError(
-                f"backend must be 'catboost' or 'lightgbm', got {backend!r}"
+                f"backend must be one of {valid_backends}, got {backend!r}"
             )
         self.model = model
         self.tweedie_power = float(tweedie_power)
@@ -144,6 +212,20 @@ class LocallyWeightedConformal:
         if lgbm_spread_model_params is not None:
             default_lgbm_params.update(lgbm_spread_model_params)
         self.lgbm_spread_model_params = default_lgbm_params
+
+        # sklearn GBM defaults
+        default_sklearn_params = {
+            "n_estimators": 300,
+            "learning_rate": 0.05,
+            "max_depth": 4,
+            "random_state": 42,
+        }
+        if sklearn_spread_model_params is not None:
+            default_sklearn_params.update(sklearn_spread_model_params)
+        self.sklearn_spread_model_params = default_sklearn_params
+
+        # backend_ is set during fit() to the resolved backend
+        self.backend_: Optional[str] = None
 
         self.spread_model_: Any = None
         self.cal_scores_: Optional[np.ndarray] = None
@@ -182,27 +264,41 @@ class LocallyWeightedConformal:
 
         X_np = self._to_numpy(X_train)
 
-        if self.backend == "catboost":
+        # Resolve the backend (handles "auto" selection)
+        resolved = _resolve_backend(self.backend)
+        self.backend_ = resolved
+
+        if resolved == "catboost":
             try:
                 from catboost import CatBoostRegressor
             except ImportError as e:
                 raise ImportError(
                     "LocallyWeightedConformal with backend='catboost' requires CatBoost. "
-                    "Install with: uv pip install 'insurance-conformal[catboost]'"
+                    "Install with: pip install 'insurance-conformal[catboost]'\n"
+                    "Or use backend='auto' to fall back to lightgbm or sklearn automatically."
                 ) from e
             self.spread_model_ = CatBoostRegressor(**self.spread_model_params)
             self.spread_model_.fit(X_np, pearson_resid)
 
-        elif self.backend == "lightgbm":
+        elif resolved == "lightgbm":
             try:
                 from lightgbm import LGBMRegressor
             except ImportError as e:
                 raise ImportError(
                     "LocallyWeightedConformal with backend='lightgbm' requires LightGBM. "
-                    "Install with: uv pip install 'insurance-conformal[lightgbm]'"
+                    "Install with: pip install 'insurance-conformal[lightgbm]'\n"
+                    "Or use backend='auto' to fall back to sklearn automatically."
                 ) from e
             self.spread_model_ = LGBMRegressor(**self.lgbm_spread_model_params)
             self.spread_model_.fit(X_np, pearson_resid)
+
+        elif resolved == "sklearn":
+            from sklearn.ensemble import GradientBoostingRegressor
+            self.spread_model_ = GradientBoostingRegressor(**self.sklearn_spread_model_params)
+            self.spread_model_.fit(X_np, pearson_resid)
+
+        else:
+            raise ValueError(f"Unknown resolved backend: {resolved!r}")
 
         return self
 
@@ -429,9 +525,16 @@ class LocallyWeightedConformal:
             if self.is_calibrated_
             else ("fitted, not calibrated" if self.spread_model_ is not None else "not fitted")
         )
+        # Show the resolved backend when known (after fit), else the configured value
+        if self.backend_ is not None and self.backend == "auto":
+            backend_str = f"auto -> {self.backend_}"
+        elif self.backend_ is not None:
+            backend_str = self.backend_
+        else:
+            backend_str = self.backend  # not yet fitted; show configured value
         return (
             f"LocallyWeightedConformal("
             f"tweedie_power={self.tweedie_power}, "
-            f"backend={self.backend!r}, "
+            f"backend={backend_str!r}, "
             f"{status})"
         )
