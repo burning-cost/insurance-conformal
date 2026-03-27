@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "insurance-conformal"
 version = "0.6.3"
-description = "Distribution-free prediction intervals for insurance GBM and GLM pricing models"
+description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -22,6 +22,12 @@ keywords = [
     "personal lines",
     "actuarial",
     "pricing",
+    "SCR",
+    "solvency",
+    "conformal risk control",
+    "coverage guarantee",
+    "sequential",
+    "distribution-free",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

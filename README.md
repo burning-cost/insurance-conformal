@@ -1,6 +1,6 @@
 # insurance-conformal
 
-![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green) ![PyPI](https://img.shields.io/pypi/v/insurance-conformal) [![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/burning-cost-examples/blob/main/notebooks/burning-cost-in-30-minutes.ipynb)
+[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml) [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/insurance-conformal/) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/burning-cost/insurance-conformal/blob/main/LICENSE) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/burning-cost-examples/blob/main/notebooks/burning-cost-in-30-minutes.ipynb)
 [![nbviewer](https://img.shields.io/badge/render-nbviewer-orange)](https://nbviewer.org/github/burning-cost/insurance-conformal/blob/main/notebooks/quickstart.ipynb)
 
 Your Tweedie GBM's prediction intervals assume variance scales as mu^p across the whole book — an assumption that breaks on heterogeneous UK motor portfolios where high-mean risks are genuinely more dispersed than the parametric family predicts. insurance-conformal gives you distribution-free prediction intervals with a finite-sample coverage guarantee, 13–14% narrower than the parametric baseline on a heteroskedastic motor book.
@@ -49,6 +49,31 @@ Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-ga
 Benchmark: CatBoost Tweedie(p=1.5), 50k synthetic UK motor policies, heteroskedastic Gamma DGP, temporal 60/20/20 split, seed=42. Run: `benchmarks/benchmark_gbm.py`.
 
 The parametric aggregate of 93.1% at a 90% target signals over-width on low-risk policies. The top decile just barely meets target at 90.4% — but that is coincidental; on a book with more pronounced tail heteroscedasticity it would miss. The locally-weighted conformal variant learns which features predict large residuals and adapts width accordingly: it meets the 90% target in the top decile by construction.
+
+---
+
+## Installation
+
+```bash
+pip install insurance-conformal
+
+# With CatBoost support:
+pip install "insurance-conformal[catboost]"
+
+# With LightGBM support:
+pip install "insurance-conformal[lightgbm]"
+
+# With everything (CatBoost, LightGBM, plotting):
+pip install "insurance-conformal[all]"
+```
+
+Or with uv:
+
+```bash
+uv add insurance-conformal
+```
+
+**Dependencies:** polars and pandas are both required. Polars is the primary output format — all prediction and diagnostic methods return `pl.DataFrame`. Pandas is required for binning utilities and for accepting pandas DataFrame inputs. Both install automatically.
 
 ---
 
@@ -102,34 +127,6 @@ lw.fit(X_train, y_train)
 lw.calibrate(X_cal, y_cal)
 intervals = lw.predict_interval(X_test, alpha=0.10)
 ```
-
----
-
-## Installation
-
-```bash
-pip install insurance-conformal
-
-# With CatBoost support:
-pip install "insurance-conformal[catboost]"
-
-# With LightGBM support:
-pip install "insurance-conformal[lightgbm]"
-
-# With everything (CatBoost, LightGBM, plotting):
-pip install "insurance-conformal[all]"
-```
-
-Or with uv:
-
-```bash
-uv add insurance-conformal
-```
-
-**Dependencies:** polars and pandas are both required. Polars is the primary output format — all prediction and diagnostic methods return `pl.DataFrame`. Pandas is required for binning utilities and for accepting pandas DataFrame inputs. Both install automatically.
-
----
-
 ## Features
 
 - `InsuranceConformalPredictor` — split conformal prediction wrapping any sklearn-compatible model. Supports `pearson_weighted`, `pearson`, `deviance`, `anscombe`, and `raw` non-conformity scores.
