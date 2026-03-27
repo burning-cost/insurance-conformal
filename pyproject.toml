@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Office/Business :: Financial",
 ]
 requires-python = ">=3.10"
@@ -66,11 +66,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://burning-cost.github.io/insurance-conformal"
+Homepage = "https://burning-cost.github.io/"
 Repository = "https://github.com/burning-cost/insurance-conformal"
 Changelog = "https://github.com/burning-cost/insurance-conformal/releases"
 Documentation = "https://burning-cost.github.io/insurance-conformal"
-Issues = "https://github.com/burning-cost/insurance-conformal/issues"
+"Bug Tracker" = "https://github.com/burning-cost/insurance-conformal/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/insurance_conformal"]
@@ -78,3 +78,8 @@ packages = ["src/insurance_conformal"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+]
