@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 [![Python](https://img.shields.io/pypi/pyversions/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 [![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml)
-[![License](https://img.shields.io/badge/license-MIT-green)]()
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/burning-cost/insurance-conformal/blob/main/LICENSE)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/burning-cost/burning-cost-examples/blob/main/notebooks/burning-cost-in-30-minutes.ipynb)
 [![nbviewer](https://img.shields.io/badge/render-nbviewer-orange)](https://nbviewer.org/github/burning-cost/insurance-conformal/blob/main/notebooks/quickstart.ipynb)
 
@@ -33,9 +33,7 @@ Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-ga
 
 ## The problem
 
-Your Tweedie GBM gives point estimates. A pricing actuary needs to know the uncertainty around those estimates - not as a parametric confidence interval that depends on distributional assumptions, but as a guarantee: *this interval will contain the actual loss at least 90% of the time, for any data distribution*.
-
-Conformal prediction provides that guarantee. The catch is that the choice of non-conformity score determines interval width. Most conformal implementations use the raw absolute residual `|y - yhat|`. For insurance data, that is wrong: it treats a 1-unit error on a £100 risk identically to a 1-unit error on a £10,000 risk, producing intervals that are too wide on low-risk policies and too narrow on large risks.
+The choice of non-conformity score determines interval width. Most conformal implementations use the raw absolute residual `|y - yhat|`. For insurance data, that is wrong: it treats a 1-unit error on a £100 risk identically to a 1-unit error on a £10,000 risk, producing intervals that are too wide on low-risk policies and too narrow on large risks.
 
 ---
 
@@ -142,8 +140,6 @@ print(intervals.head())
 ```
 
 ---
-
-If this is useful, a ⭐ on GitHub helps others find it.
 
 ## Expected Performance
 
@@ -699,7 +695,6 @@ Want structured learning? [Insurance Pricing in Python](https://burning-cost.git
 - **Found a bug?** Open an [Issue](https://github.com/burning-cost/insurance-conformal/issues)
 - **Blog & tutorials:** [burning-cost.github.io](https://burning-cost.github.io)
 
-If this library saves you time, a star on GitHub helps others find it.
 
 ## Licence
 
