@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.7.0] - 2026-03-31
+
+### Added
+- `ConditionalCoverageERT`: full ERT (Excess Risk of Target Coverage) test for
+  conditional coverage violations, based on Braun et al. (arXiv:2512.11779).
+
+  The existing `ert_coverage_gap()` function is a pragmatic approximation that bins
+  by predicted value. `ConditionalCoverageERT` is the full test: it trains a LightGBM
+  binary classifier on coverage indicators Z_i = 1{y_i in [lo_i, hi_i]} using the
+  features X_i directly, with KFold CV to prevent in-sample overfitting. ERT is the
+  difference between the constant predictor loss (always predicting 1-alpha) and the
+  CV classifier loss — positive values indicate detectable conditional miscoverage.
+
+  Three loss variants:
+  - `loss="l1"`: L1-ERT (mean absolute error). Linear penalty, easy to explain.
+  - `loss="l2"`: L2-ERT (Brier score). Quadratic, more sensitive to large gaps.
+  - `loss="kl"`: KL-ERT (log loss). Information-theoretic, penalises confident errors.
+
+  Three direction variants:
+  - `direction="under"`: only penalise predicted undercoverage (p < marginal rate).
+    The most relevant variant for insurance — FCA/TCF concerns focus on systematic
+    undercoverage of specific segments, not overcoverage.
+  - `direction="over"`: only penalise predicted overcoverage (efficiency concern).
+  - `direction="both"`: symmetric, for general diagnostics.
+
+  Bootstrap CIs via `n_bootstraps` resamples with configurable confidence level.
+
+  `subgroup_coverage()` method bins each feature into quantile bins and reports
+  empirical coverage per bin — structured for FCA reporting where you need to
+  demonstrate that coverage is uniform across policyholder segments.
+
+  See `insurance_conformal.conditional_coverage` for `ConditionalCoverageERT`
+  and `ERTResult`.
+
 ## [0.6.3] - 2026-03-25
 
 ### Added

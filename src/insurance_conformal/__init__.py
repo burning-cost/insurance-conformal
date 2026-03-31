@@ -78,10 +78,21 @@ v0.6.3 adds:
   for regulatory reporting); use this when you need SCR estimates inside a pipeline.
   See solvency_capital_range.
 
+v0.7.1 adds:
+- ConditionalCoverageERT: full ERT test for conditional coverage violations
+  (Braun et al. arXiv:2512.11779). Trains a LightGBM classifier on coverage
+  indicators Z_i = 1{y_i in interval_i} ~ X_i using KFold CV and measures how
+  much it beats the constant predictor. Three loss variants (L1-ERT, L2-ERT,
+  KL-ERT), directional variants (both/under/over) for insurance use cases, and
+  bootstrap CIs. subgroup_coverage() method provides per-feature binned coverage
+  reports for FCA/TCF documentation.
+  See insurance_conformal.conditional_coverage for ConditionalCoverageERT.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
-Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275, and
-Romano, Patterson & Candès (2019) arXiv:1905.03222.
+Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
+Romano, Patterson & Candès (2019) arXiv:1905.03222, and
+Braun et al. (2024) arXiv:2512.11779.
 
 Example usage::
 
@@ -172,6 +183,16 @@ For conformalized quantile regression (heteroscedastic intervals)::
     intervals = cqr.predict_interval(X_test, alpha=0.10)
     # intervals["lower"], intervals["upper"] carry the coverage guarantee
     # intervals["q_lo"], intervals["q_hi"] are the raw quantile model outputs
+
+For conditional coverage testing (FCA/TCF diagnostics)::
+
+    from insurance_conformal.conditional_coverage import ConditionalCoverageERT
+
+    ert = ConditionalCoverageERT(loss="l1", direction="under", n_splits=5)
+    result = ert.evaluate(X_test, y_lower, y_upper, y_true, alpha=0.10)
+    print(result)  # ERTResult(ert=0.023***, CI=[0.008, 0.041], ...)
+    subgroups = ert.subgroup_coverage(X_test, y_lower, y_upper, y_true, alpha=0.10,
+                                       feature_names=["age", "vehicle_group", "region"])
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -196,6 +217,7 @@ from insurance_conformal.retro_adj import RetroAdj
 from insurance_conformal.cqr import ConformalisedQuantileRegression
 from insurance_conformal._solvency import solvency_capital_range, SolvencyCapitalRange
 from insurance_conformal.tweedie_conform import TweedieConformPredictor
+from insurance_conformal.conditional_coverage import ConditionalCoverageERT
 
 __all__ = [
     # Core (v0.1)
@@ -227,6 +249,8 @@ __all__ = [
     "SolvencyCapitalRange",
     # v0.7.0 additions
     "TweedieConformPredictor",
+    # v0.7.1 additions
+    "ConditionalCoverageERT",
 ]
 
 from importlib.metadata import version, PackageNotFoundError

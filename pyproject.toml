@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.7.0"
+version = "0.7.1"
 description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
 readme = "README.md"
 license = "MIT"
