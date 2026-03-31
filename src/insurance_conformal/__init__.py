@@ -88,11 +88,26 @@ v0.7.1 adds:
   reports for FCA/TCF documentation.
   See insurance_conformal.conditional_coverage for ConditionalCoverageERT.
 
+v0.8.0 adds:
+- ConditionalValidityIndex: scalar measure of conditional coverage quality,
+  decomposed into CVI_U (undercoverage risk) and CVI_O (overcoverage cost).
+  Fits a LightGBM classifier Z ~ X via KFold CV with isotonic probability
+  calibration to estimate local coverage probabilities eta_hat(x). Based on
+  Zhou et al. arXiv:2603.27189. Complements ConditionalCoverageERT: ERT is a
+  hypothesis test, CVI is a continuous score for ranking and selection.
+- CCSelect: selects the best conformal predictor from a set by minimising mean
+  CVI across random train/eval splits. Picks the predictor with the most uniform
+  conditional coverage — the right criterion when regulatory and commercial
+  exposure is concentrated in tails. Predictors must implement .calibrate(X, y)
+  and .predict_interval(X, alpha) matching the standard interface.
+  See ConditionalValidityIndex, CCSelect, CVIResult, CCSelectResult.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
-Romano, Patterson & Candès (2019) arXiv:1905.03222, and
-Braun et al. (2024) arXiv:2512.11779.
+Romano, Patterson & Candès (2019) arXiv:1905.03222,
+Braun et al. (2024) arXiv:2512.11779, and
+Zhou et al. (2026) arXiv:2603.27189.
 
 Example usage::
 
@@ -193,6 +208,26 @@ For conditional coverage testing (FCA/TCF diagnostics)::
     print(result)  # ERTResult(ert=0.023***, CI=[0.008, 0.041], ...)
     subgroups = ert.subgroup_coverage(X_test, y_lower, y_upper, y_true, alpha=0.10,
                                        feature_names=["age", "vehicle_group", "region"])
+
+For conditional coverage diagnostics and predictor selection (v0.8.0)::
+
+    from insurance_conformal import ConditionalValidityIndex, CCSelect
+
+    # Evaluate conditional coverage quality of a single predictor
+    cvi = ConditionalValidityIndex(gamma=0.1, n_splits=5)
+    result = cvi.evaluate(X_test, lower, upper, y_test, alpha=0.10)
+    print(result.cvi)    # total CVI
+    print(result.cvi_u)  # undercoverage component
+    print(result.cvi_o)  # overcoverage component
+
+    # Select the best predictor from multiple candidates
+    selector = CCSelect(n_splits=5, split_ratio=0.5, random_state=42)
+    sel_result = selector.fit(
+        {"pearson": cp_pearson, "locally_weighted": cp_lw},
+        X_cal, y_cal, alpha=0.10
+    )
+    print(sel_result.best_predictor)
+    print(selector.compare())
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -217,7 +252,13 @@ from insurance_conformal.retro_adj import RetroAdj
 from insurance_conformal.cqr import ConformalisedQuantileRegression
 from insurance_conformal._solvency import solvency_capital_range, SolvencyCapitalRange
 from insurance_conformal.tweedie_conform import TweedieConformPredictor
-from insurance_conformal.conditional_coverage import ConditionalCoverageERT
+from insurance_conformal.conditional_coverage import (
+    ConditionalCoverageERT,
+    ConditionalValidityIndex,
+    CCSelect,
+    CVIResult,
+    CCSelectResult,
+)
 
 __all__ = [
     # Core (v0.1)
@@ -251,6 +292,11 @@ __all__ = [
     "TweedieConformPredictor",
     # v0.7.1 additions
     "ConditionalCoverageERT",
+    # v0.8.0 additions
+    "ConditionalValidityIndex",
+    "CCSelect",
+    "CVIResult",
+    "CCSelectResult",
 ]
 
 from importlib.metadata import version, PackageNotFoundError
