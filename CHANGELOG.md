@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2026-03-31
+
+### Added
+- `ConditionalCoverageERT` from `insurance_conformal.conditional_coverage`. See below.
+
 ## [0.7.0] - 2026-03-31
 
 ### Added
