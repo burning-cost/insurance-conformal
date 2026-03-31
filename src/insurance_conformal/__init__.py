@@ -62,6 +62,14 @@ v0.6.2 adds:
   LightGBM objective=quantile, sklearn GradientBoostingRegressor loss=quantile.
   See ConformalisedQuantileRegression.
 
+v0.7.0 adds:
+- TweedieConformPredictor: unified split conformal for Tweedie models. Single
+  entry point consolidating all four score types (pearson, lw_pearson, deviance,
+  anscombe), exposure weighting, score selection, and coverage diagnostics.
+  The key genuine gap vs existing code: exposure_weighted mode adjusts the
+  score denominator to (e*mu)^{p/2}, appropriate for rate models with variable
+  policy terms. See TweedieConformPredictor.
+
 v0.6.3 adds:
 - solvency_capital_range(): lightweight functional API for Solvency II SCR bounds.
   Returns a SolvencyCapitalRange dataclass with per-risk scr_estimate, lower_bound,
@@ -187,6 +195,7 @@ from insurance_conformal.diagnostics_ext import (
 from insurance_conformal.retro_adj import RetroAdj
 from insurance_conformal.cqr import ConformalisedQuantileRegression
 from insurance_conformal._solvency import solvency_capital_range, SolvencyCapitalRange
+from insurance_conformal.tweedie_conform import TweedieConformPredictor
 
 __all__ = [
     # Core (v0.1)
@@ -216,6 +225,8 @@ __all__ = [
     # v0.6.3 additions
     "solvency_capital_range",
     "SolvencyCapitalRange",
+    # v0.7.0 additions
+    "TweedieConformPredictor",
 ]
 
 from importlib.metadata import version, PackageNotFoundError
