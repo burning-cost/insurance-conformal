@@ -194,9 +194,13 @@ def test_min_samples_fallback(synthetic_data):
 
     lower = intervals["lower"].to_numpy()
     upper = intervals["upper"].to_numpy()
+    point = intervals["point_pred"].to_numpy()
     assert np.all(lower <= upper)
-    # When always using global set, all intervals are identical (same quantile)
-    assert np.allclose(upper - lower, upper[0] - lower[0], atol=1e-6)
+    # When always using global set, the nonconformity quantile is identical
+    # for all points, so (upper - point_pred) should be constant.
+    # Note: (point_pred - lower) may vary due to clipping at 0.
+    half_widths = upper - point
+    assert np.allclose(half_widths, half_widths[0], atol=1e-6)
 
 
 # ---------------------------------------------------------------------------
