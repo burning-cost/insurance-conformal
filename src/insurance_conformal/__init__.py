@@ -124,6 +124,16 @@ v1.0.0 adds:
   normalized (|y - ŷ|/ŷ) for heteroscedastic Tweedie/Gamma severity data.
   See LoBoostCP.
 
+v1.1.0 adds:
+- KMMConformalPredictor: covariate-shift-robust conformal prediction via Kernel
+  Mean Matching (Laghuvarapu, Deb & Sun 2026, arXiv:2603.26415). Wraps any
+  fitted sklearn-compatible model. Solves a QP (scipy SLSQP) to find calibration
+  weights that minimise RKHS moment discrepancy between the reweighted calibration
+  distribution and the target distribution, then applies the Tibshirani (2019)
+  weighted conformal quantile. Selective mode (SKMM) abstains on out-of-support
+  risks. Primary insurance use cases: portfolio transfers, post-COVID cohort shift,
+  channel expansion, scheme changes. See KMMConformalPredictor.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
@@ -224,6 +234,7 @@ For conformalized quantile regression (heteroscedastic intervals)::
 For conditional coverage testing (FCA/TCF diagnostics)::
 
     from insurance_conformal.conditional_coverage import ConditionalCoverageERT
+from insurance_conformal.covariate_shift import KMMConformalPredictor
 
     ert = ConditionalCoverageERT(loss="l1", direction="under", n_splits=5)
     result = ert.evaluate(X_test, y_lower, y_upper, y_true, alpha=0.10)
@@ -325,6 +336,8 @@ __all__ = [
     "ShapeAdaptiveCP",
     # v1.0.0 additions
     "LoBoostCP",
+    # v1.1.0 additions
+    "KMMConformalPredictor",
 ]
 
 from importlib.metadata import version, PackageNotFoundError
