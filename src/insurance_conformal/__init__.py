@@ -102,6 +102,18 @@ v0.8.0 adds:
   and .predict_interval(X, alpha) matching the standard interface.
   See ConditionalValidityIndex, CCSelect, CVIResult, CCSelectResult.
 
+
+v0.9.0 adds:
+- ShapeAdaptiveCP: MOPI (Minimax Optimization for Predictive Inference) for
+  conditional coverage conformal prediction (Bao et al., arXiv:2603.23374).
+  Solves a minimax problem to achieve near-uniform conditional coverage across
+  subgroups Z, reducing mean squared conditional coverage error (MSCE) vs
+  standard split conformal and CQR. Key insurance feature: Z (age band, rating
+  cell, gender) can be used at calibration time but masked at deployment — the
+  prediction intervals are functions of X only. Two modes: group (finite
+  categorical Z, pure numpy O(K) per step) and rkhs (continuous Z, Gaussian
+  kernel, O(n^3) setup). See ShapeAdaptiveCP.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
@@ -259,6 +271,7 @@ from insurance_conformal.conditional_coverage import (
     CVIResult,
     CCSelectResult,
 )
+from insurance_conformal.mopi import ShapeAdaptiveCP
 
 __all__ = [
     # Core (v0.1)
@@ -297,6 +310,8 @@ __all__ = [
     "CCSelect",
     "CVIResult",
     "CCSelectResult",
+    # v0.9.0 additions
+    "ShapeAdaptiveCP",
 ]
 
 from importlib.metadata import version, PackageNotFoundError

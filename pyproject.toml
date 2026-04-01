@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "0.8.0"
+version = "0.9.0"
 description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
 readme = "README.md"
 license = "MIT"
@@ -85,5 +85,6 @@ addopts = "--tb=short"
 
 [dependency-groups]
 dev = [
+    "lightgbm>=4.6.0",
     "pytest-cov>=7.0.0",
 ]
