@@ -652,7 +652,7 @@ class TestDiagnostics:
             Z_test=d["Z"][300:],
         )
         report = cp.coverage_report(d["y"][300:], lower, upper, d["Z"][300:])
-        assert (report["target_coverage"] == pytest.approx(0.95)).all()
+        assert all(abs(v - 0.95) < 1e-6 for v in report["target_coverage"].to_list())
 
     def test_msce_non_negative(self, small_group_data):
         d = small_group_data
