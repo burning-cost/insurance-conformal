@@ -134,12 +134,25 @@ v1.1.0 adds:
   risks. Primary insurance use cases: portfolio transfers, post-COVID cohort shift,
   channel expansion, scheme changes. See KMMConformalPredictor.
 
+v1.2.0 adds:
+- ConformalisedSurvival: doubly robust conformalized survival analysis for
+  right-censored data (Sesia & Svetnik, arXiv:2412.09729). Produces a lower
+  prediction bound P[T >= L_hat(X)] >= 1 - alpha using IPCW-weighted conformal
+  inference after Monte Carlo imputation of unobserved censoring times. Double
+  robustness: coverage holds asymptotically if either the survival model or the
+  censoring model is correctly specified. Insurance use cases: mortality bounds
+  for protection pricing, lapse timing bounds, time-to-claim closure bounds.
+  Includes KaplanMeierCensoringModel (marginal censoring), LifelinesCoxCensoringAdapter,
+  and SksurvCoxCensoringAdapter. Optional dependency: pip install insurance-conformal[survival].
+  See ConformalisedSurvival, KaplanMeierCensoringModel, SurvivalModelProtocol.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
 Romano, Patterson & Candès (2019) arXiv:1905.03222,
-Braun et al. (2024) arXiv:2512.11779, and
-Zhou et al. (2026) arXiv:2603.27189.
+Braun et al. (2024) arXiv:2512.11779,
+Zhou et al. (2026) arXiv:2603.27189, and
+Sesia & Svetnik (2024) arXiv:2412.09729.
 
 Example usage::
 
@@ -234,7 +247,7 @@ For conformalized quantile regression (heteroscedastic intervals)::
 For conditional coverage testing (FCA/TCF diagnostics)::
 
     from insurance_conformal.conditional_coverage import ConditionalCoverageERT
-from insurance_conformal.covariate_shift import KMMConformalPredictor
+    from insurance_conformal.covariate_shift import KMMConformalPredictor
 
     ert = ConditionalCoverageERT(loss="l1", direction="under", n_splits=5)
     result = ert.evaluate(X_test, y_lower, y_upper, y_true, alpha=0.10)
@@ -261,6 +274,29 @@ For conditional coverage diagnostics and predictor selection (v0.8.0)::
     )
     print(sel_result.best_predictor)
     print(selector.compare())
+
+For conformalized survival analysis with right-censored data (v1.2.0)::
+
+    from insurance_conformal import ConformalisedSurvival, KaplanMeierCensoringModel
+
+    # Fit a survival model with predict_quantile(X, alpha) interface
+    # (or use SksurvCoxCensoringAdapter / LifelinesCoxCensoringAdapter)
+    km_censoring = KaplanMeierCensoringModel()
+    km_censoring.fit(t_train, e_train)
+
+    cs = ConformalisedSurvival(
+        survival_model=fitted_survival_model,
+        censoring_model=km_censoring,
+        method="fixed_cutoff",
+        alpha=0.10,
+        n_impute=10,
+    )
+    cs.calibrate(X_cal, t_cal, e_cal)
+    bounds = cs.predict_lower_bound(X_test)
+    # bounds["lower_bound"]: 90% LPB on survival time
+    # bounds["q_alpha_model"]: raw model quantile before conformal correction
+    diag = cs.coverage_diagnostics(X_test, t_test, e_test)
+    print(diag)
 """
 
 from insurance_conformal.predictor import InsuranceConformalPredictor
@@ -294,6 +330,14 @@ from insurance_conformal.conditional_coverage import (
 )
 from insurance_conformal.mopi import ShapeAdaptiveCP
 from insurance_conformal.loboost import LoBoostCP
+from insurance_conformal.survival import (
+    ConformalisedSurvival,
+    KaplanMeierCensoringModel,
+    SurvivalModelProtocol,
+    CensoringModelProtocol,
+    LifelinesCoxCensoringAdapter,
+    SksurvCoxCensoringAdapter,
+)
 
 __all__ = [
     # Core (v0.1)
@@ -338,7 +382,16 @@ __all__ = [
     "LoBoostCP",
     # v1.1.0 additions
     "KMMConformalPredictor",
+    # v1.2.0 additions
+    "ConformalisedSurvival",
+    "KaplanMeierCensoringModel",
+    "SurvivalModelProtocol",
+    "CensoringModelProtocol",
+    "LifelinesCoxCensoringAdapter",
+    "SksurvCoxCensoringAdapter",
 ]
+
+from insurance_conformal.covariate_shift import KMMConformalPredictor
 
 from importlib.metadata import version, PackageNotFoundError
 

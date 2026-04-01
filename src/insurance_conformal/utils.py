@@ -107,6 +107,64 @@ def conformal_quantile(scores: np.ndarray, alpha: float) -> float:
     return float(np.quantile(scores, level, method="higher"))
 
 
+def ipcw_weighted_quantile(
+    scores: np.ndarray,
+    weights: np.ndarray,
+    alpha: float,
+) -> float:
+    """
+    Compute the IPCW-weighted conformal quantile.
+
+    Finds the smallest score value r such that the cumulative normalised
+    weight of all scores <= r is at least 1 - alpha. This is the standard
+    weighted quantile used in importance-weighted conformal inference.
+
+    Unlike the Tibshirani (2019) version in covariate_shift.py, this variant
+    does not add a point mass at infinity for a test point. It is appropriate
+    for the survival setting where IPCW weights come from a censoring model
+    rather than from KMM density ratio estimation.
+
+    Parameters
+    ----------
+    scores : np.ndarray, shape (n,)
+        Non-conformity scores for calibration points.
+    weights : np.ndarray, shape (n,)
+        Non-negative IPCW weights. Need not sum to 1.
+    alpha : float
+        Miscoverage rate. Must be in (0, 1).
+
+    Returns
+    -------
+    float
+        Weighted quantile value. Returns max(scores) if weights are
+        degenerate.
+    """
+    if not 0 < alpha < 1:
+        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+
+    if len(scores) == 0:
+        raise ValueError("Cannot compute quantile from empty score array.")
+
+    total = float(weights.sum())
+    if total < 1e-12:
+        warnings.warn(
+            "IPCW weights sum to near-zero. Returning max score as quantile.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return float(np.max(scores))
+
+    order = np.argsort(scores)
+    sorted_scores = scores[order]
+    sorted_weights = weights[order]
+    cummass = np.cumsum(sorted_weights) / total
+
+    idx = np.searchsorted(cummass, 1.0 - alpha)
+    if idx >= len(sorted_scores):
+        return float(sorted_scores[-1])
+    return float(sorted_scores[idx])
+
+
 def apply_exposure(
     y: np.ndarray,
     yhat: np.ndarray,

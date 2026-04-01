@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "1.1.0"
+version = "1.2.0"
 description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
 readme = "README.md"
 license = "MIT"
@@ -28,6 +28,8 @@ keywords = [
     "coverage guarantee",
     "sequential",
     "distribution-free",
+    "survival analysis",
+    "censored data",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -55,7 +57,8 @@ dependencies = [
 catboost = ["catboost>=1.2"]
 lightgbm = ["lightgbm>=4.0"]
 plot = ["matplotlib>=3.6", "pillow>=12.1.1"]
-all = ["catboost>=1.2", "lightgbm>=4.0", "matplotlib>=3.6", "pillow>=12.1.1"]
+survival = ["lifelines>=0.27", "scikit-survival>=0.22"]
+all = ["catboost>=1.2", "lightgbm>=4.0", "matplotlib>=3.6", "pillow>=12.1.1", "lifelines>=0.27", "scikit-survival>=0.22"]
 dev = [
     "pytest>=8.4",
     "pyarrow>=21.0",
