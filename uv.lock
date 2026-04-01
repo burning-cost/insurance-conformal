@@ -436,14 +436,13 @@ wheels = [
 
 [[package]]
 name = "insurance-conformal"
-version = "0.6.3"
+version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pillow" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -457,6 +456,7 @@ all = [
     { name = "catboost" },
     { name = "lightgbm" },
     { name = "matplotlib" },
+    { name = "pillow" },
 ]
 catboost = [
     { name = "catboost" },
@@ -478,10 +478,12 @@ lightgbm = [
 ]
 plot = [
     { name = "matplotlib" },
+    { name = "pillow" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "lightgbm" },
     { name = "pytest-cov" },
 ]
 
@@ -499,8 +501,9 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.0" },
     { name = "pdoc", marker = "extra == 'dev'", specifier = ">=14.0.0" },
-    { name = "pillow", specifier = ">=12.1.1" },
+    { name = "pillow", marker = "extra == 'all'", specifier = ">=12.1.1" },
     { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.1.1" },
+    { name = "pillow", marker = "extra == 'plot'", specifier = ">=12.1.1" },
     { name = "polars", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=14.0" },
     { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=21.0" },
@@ -513,7 +516,10 @@ requires-dist = [
 provides-extras = ["catboost", "lightgbm", "plot", "all", "dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest-cov", specifier = ">=7.0.0" }]
+dev = [
+    { name = "lightgbm", specifier = ">=4.6.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+]
 
 [[package]]
 name = "jinja2"

@@ -114,6 +114,16 @@ v0.9.0 adds:
   categorical Z, pure numpy O(K) per step) and rkhs (continuous Z, Gaussian
   kernel, O(n^3) setup). See ShapeAdaptiveCP.
 
+v1.0.0 adds:
+- LoBoostCP: model-native local conformal prediction for gradient-boosted trees
+  (Santos, Izbicki & Stern, 2025, arXiv:2602.22432). Uses the leaf structure of
+  fitted GBMs to create multiscale local calibration groups — no retraining.
+  Supports CatBoost, XGBoost, LightGBM, and sklearn GradientBoosting. Produces
+  prediction intervals with local (per-risk-type) calibration, narrower where the
+  model has genuine local resolution. Two score types: absolute (|y - ŷ|) and
+  normalized (|y - ŷ|/ŷ) for heteroscedastic Tweedie/Gamma severity data.
+  See LoBoostCP.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
@@ -272,6 +282,7 @@ from insurance_conformal.conditional_coverage import (
     CCSelectResult,
 )
 from insurance_conformal.mopi import ShapeAdaptiveCP
+from insurance_conformal.loboost import LoBoostCP
 
 __all__ = [
     # Core (v0.1)
@@ -312,6 +323,8 @@ __all__ = [
     "CCSelectResult",
     # v0.9.0 additions
     "ShapeAdaptiveCP",
+    # v1.0.0 additions
+    "LoBoostCP",
 ]
 
 from importlib.metadata import version, PackageNotFoundError
