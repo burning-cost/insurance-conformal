@@ -145,6 +145,14 @@ v1.2.0 adds:
   Includes KaplanMeierCensoringModel (marginal censoring), LifelinesCoxCensoringAdapter,
   and SksurvCoxCensoringAdapter. Optional dependency: pip install insurance-conformal[survival].
   See ConformalisedSurvival, KaplanMeierCensoringModel, SurvivalModelProtocol.
+- LCPModelSelector: locally adaptive conformal model and score selection
+  (Wang & Wang, Feb 2026, arXiv:2602.19284). Fits K pre-trained models and
+  selects the locally best model/score for each test point using kernel-weighted
+  LOO validity checks. Marginal coverage is guaranteed regardless of which model
+  is selected. LocalScoreSelector is a convenience wrapper for single-model
+  multi-score selection. Insurance use cases: score selection across pearson/deviance/
+  anscombe, model selection between GLM and GBM, and portfolio mixture localisation.
+  See LCPModelSelector, LocalScoreSelector.
 
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
@@ -248,6 +256,7 @@ For conditional coverage testing (FCA/TCF diagnostics)::
 
     from insurance_conformal.conditional_coverage import ConditionalCoverageERT
     from insurance_conformal.covariate_shift import KMMConformalPredictor
+from insurance_conformal.lcp_model_selector import LCPModelSelector, LocalScoreSelector
 
     ert = ConditionalCoverageERT(loss="l1", direction="under", n_splits=5)
     result = ert.evaluate(X_test, y_lower, y_upper, y_true, alpha=0.10)
@@ -389,9 +398,12 @@ __all__ = [
     "CensoringModelProtocol",
     "LifelinesCoxCensoringAdapter",
     "SksurvCoxCensoringAdapter",
+    "LCPModelSelector",
+    "LocalScoreSelector",
 ]
 
 from insurance_conformal.covariate_shift import KMMConformalPredictor
+from insurance_conformal.lcp_model_selector import LCPModelSelector, LocalScoreSelector
 
 from importlib.metadata import version, PackageNotFoundError
 
