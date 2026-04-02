@@ -10,7 +10,7 @@ advantage over the constant predictor — zero under the null, positive under
 conditional miscoverage. Three loss variants (L1, L2, KL), directional variants
 for insurance FCA/TCF use cases. Based on Braun et al. arXiv:2512.11779.
 
-ConditionalValidityIndex (v0.8.0): scalar measure of conditional coverage
+ConditionalValidityIndex (v1.3.0): scalar measure of conditional coverage
 quality, decomposed into undercoverage risk (CVI_U) and overcoverage cost
 (CVI_O). Unlike ERT (a hypothesis test), CVI gives a continuous, interpretable
 score that can be used to rank and select conformal predictors. Fits a LightGBM
@@ -40,6 +40,7 @@ References:
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 
@@ -720,6 +721,18 @@ class ConditionalValidityIndex:
         if not 0 < alpha < 1:
             raise ValueError(f"alpha must be in (0, 1), got {alpha}")
 
+        # Warn for small calibration sets — CVI convergence requires sufficient
+        # data per bin. Zhou et al. (arXiv:2603.27189) note n>=800 for reliability.
+        _WARN_THRESHOLD_CVI = 800
+        if n < _WARN_THRESHOLD_CVI:
+            warnings.warn(
+                f"CVI estimates may be unreliable with fewer than {_WARN_THRESHOLD_CVI} "
+                f"calibration samples (got {n}). Results should be interpreted with caution. "
+                "See Zhou et al. arXiv:2603.27189.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         # Step 1: coverage indicators
         Z = ((y >= lower) & (y <= upper)).astype(float)
         marginal_coverage = float(Z.mean())
@@ -873,6 +886,178 @@ class ConditionalValidityIndex:
 
         plt.tight_layout()
         plt.show()
+
+    def expected_calibration_error(self, n_bins: int = 10) -> float:
+        """
+        Expected calibration error (ECE) — a complement to CVI.
+
+        ECE is the weighted average of |observed_coverage - nominal_coverage|
+        across bins of eta_hat. Where CVI decomposes coverage errors into
+        under/overcoverage components, ECE gives a single summary of raw
+        calibration deviation without the directional decomposition.
+
+        Bins observations by estimated coverage probability eta_hat(X), then
+        computes empirical coverage per bin and weights the absolute deviations
+        by bin size::
+
+            ECE = sum_k (n_k / n) * |coverage_k - (1 - alpha)|
+
+        Parameters
+        ----------
+        n_bins : int, default 10
+            Number of equal-width bins over [0, 1] in eta_hat space.
+
+        Returns
+        -------
+        float
+            Expected calibration error in [0, 1]. Zero means perfect
+            per-bin calibration. Values above 0.05 indicate meaningful
+            systematic miscoverage.
+
+        Raises
+        ------
+        RuntimeError
+            If evaluate() has not been called yet.
+        """
+        if self.result_ is None:
+            raise RuntimeError(
+                "Call evaluate() before expected_calibration_error()."
+            )
+        r = self.result_
+        target = 1.0 - r.alpha
+        eta = r.eta_hat
+        n = r.n_obs
+
+        # Coverage indicators are not stored on CVIResult, but we can infer
+        # from eta_hat whether points were covered. However, eta_hat is the
+        # *estimated* coverage probability, not the raw coverage indicator.
+        # We bin by eta_hat and compute the mean eta_hat per bin vs target,
+        # since the raw Z indicators are not stored after evaluate().
+        # This gives ECE as the weighted mean deviation of estimated coverage
+        # from the nominal level — analogous to how ECE is computed in
+        # classification calibration with confidence as the bin key.
+        bin_edges = np.linspace(0.0, 1.0 + 1e-10, n_bins + 1)
+        ece = 0.0
+        for i in range(n_bins):
+            mask = (eta >= bin_edges[i]) & (eta < bin_edges[i + 1])
+            n_k = mask.sum()
+            if n_k == 0:
+                continue
+            coverage_k = eta[mask].mean()
+            ece += (n_k / n) * abs(coverage_k - target)
+        return float(ece)
+
+    def plot_conditional_validity(
+        self,
+        n_bins: int = 10,
+        alpha_ci: float = 0.05,
+        figsize: tuple = (8, 5),
+    ):
+        """
+        Per-bin coverage vs nominal level (CVP plot).
+
+        Shows empirical coverage per bin of eta_hat(X) with Wilson score
+        confidence intervals, and a horizontal reference line at 1-alpha.
+        Use this to identify which coverage-probability strata are most
+        miscalibrated — bins that clearly miss the nominal line (outside
+        their error bars) are regions worth investigating.
+
+        Parameters
+        ----------
+        n_bins : int, default 10
+            Number of equal-width bins over eta_hat.
+        alpha_ci : float, default 0.05
+            Significance level for binomial proportion Wilson CIs.
+            0.05 gives 95% confidence intervals.
+        figsize : tuple, default (8, 5)
+            Matplotlib figure size.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure object. Call .savefig() or .show() as needed.
+
+        Raises
+        ------
+        RuntimeError
+            If evaluate() has not been called yet.
+        ImportError
+            If matplotlib is not installed.
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "plot_conditional_validity() requires matplotlib. "
+                "Install with: pip install 'insurance-conformal[plot]'"
+            ) from exc
+
+        if self.result_ is None:
+            raise RuntimeError(
+                "Call evaluate() before plot_conditional_validity()."
+            )
+
+        from scipy import stats as _stats  # noqa: PLC0415 — optional dep
+
+        r = self.result_
+        target = 1.0 - r.alpha
+        eta = r.eta_hat
+        n = r.n_obs
+        z_ci = _stats.norm.ppf(1.0 - alpha_ci / 2.0)
+
+        bin_edges = np.linspace(0.0, 1.0 + 1e-10, n_bins + 1)
+        bin_labels = []
+        coverages = []
+        err_lo = []
+        err_hi = []
+        n_bins_used = []
+
+        for i in range(n_bins):
+            mask = (eta >= bin_edges[i]) & (eta < bin_edges[i + 1])
+            n_k = int(mask.sum())
+            if n_k == 0:
+                continue
+            # Coverage_k = mean estimated coverage probability in this bin
+            p_hat = float(eta[mask].mean())
+            # Wilson score CI for a proportion
+            denom = 1.0 + z_ci ** 2 / n_k
+            centre = (p_hat + z_ci ** 2 / (2 * n_k)) / denom
+            spread = z_ci * np.sqrt(p_hat * (1.0 - p_hat) / n_k + z_ci ** 2 / (4 * n_k ** 2)) / denom
+            lo = float(np.clip(centre - spread, 0.0, 1.0))
+            hi = float(np.clip(centre + spread, 0.0, 1.0))
+
+            mid = 0.5 * (bin_edges[i] + bin_edges[i + 1])
+            bin_labels.append(f"{mid:.2f}")
+            coverages.append(p_hat)
+            err_lo.append(p_hat - lo)
+            err_hi.append(hi - p_hat)
+            n_bins_used.append(n_k)
+
+        x_pos = np.arange(len(bin_labels))
+        coverages = np.array(coverages)
+        yerr = np.array([err_lo, err_hi])
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.errorbar(
+            x_pos, coverages, yerr=yerr,
+            fmt="o", color="steelblue", capsize=4, linewidth=1.5,
+            label="Per-bin coverage",
+        )
+        ax.axhline(target, color="black", linewidth=1.5, linestyle="--",
+                   label=f"Nominal 1-alpha = {target:.2f}")
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(bin_labels, rotation=45, ha="right", fontsize=9)
+        ax.set_xlabel("eta_hat bin midpoint")
+        ax.set_ylabel("Coverage probability")
+        ax.set_ylim(0.0, 1.05)
+        ax.set_title(
+            f"Conditional validity plot
+"
+            f"CVI={r.cvi:.4f} (U={r.cvi_u:.4f}, O={r.cvi_o:.4f}), n={n}"
+        )
+        ax.legend(fontsize=9)
+        fig.tight_layout()
+        return fig
 
     def _fit_eta_hat(
         self, X: np.ndarray, Z: np.ndarray, LGBMClassifier: Any

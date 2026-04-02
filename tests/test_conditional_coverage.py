@@ -15,6 +15,8 @@ fast and deterministic.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import polars as pl
 import pytest
@@ -924,3 +926,196 @@ class TestTopLevelImports:
     def test_ert_still_importable(self):
         """ConditionalCoverageERT must still be importable (v0.7.1 API unchanged)."""
         from insurance_conformal import ConditionalCoverageERT  # noqa: F401
+
+
+# ===========================================================================
+# Part 3: CVI v1.3.0 polish — n<800 warning, ECE, CVP plot
+# ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# Shared fixture for v1.3.0 tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def cvi_800():
+    """CVIResult from exactly 800 calibration samples — no warning."""
+    rng = np.random.default_rng(7)
+    n = 800
+    X = rng.normal(size=(n, 3))
+    y = rng.normal(loc=5.0, scale=1.5, size=n)
+    lower = y - 2.0
+    upper = y + 2.0
+    cvi = ConditionalValidityIndex(gamma=0.1, n_splits=3, random_state=0)
+    result = cvi.evaluate(X, lower, upper, y, alpha=0.10)
+    return cvi, result
+
+
+@pytest.fixture(scope="module")
+def cvi_small():
+    """ConditionalValidityIndex fitted on 200 samples — triggers n<800 warning."""
+    rng = np.random.default_rng(9)
+    n = 200
+    X = rng.normal(size=(n, 3))
+    y = rng.normal(loc=5.0, scale=1.5, size=n)
+    lower = y - 2.0
+    upper = y + 2.0
+    cvi = ConditionalValidityIndex(gamma=0.1, n_splits=3, random_state=0)
+    return cvi, X, lower, upper, y
+
+
+# ---------------------------------------------------------------------------
+# TestCVISmallNWarning
+# ---------------------------------------------------------------------------
+
+
+class TestCVISmallNWarning:
+    def test_warning_emitted_below_800(self, cvi_small):
+        cvi, X, lower, upper, y = cvi_small
+        with pytest.warns(UserWarning, match="800"):
+            cvi.evaluate(X, lower, upper, y, alpha=0.10)
+
+    def test_warning_mentions_zhou(self, cvi_small):
+        cvi, X, lower, upper, y = cvi_small
+        with pytest.warns(UserWarning, match="arXiv:2603.27189"):
+            cvi.evaluate(X, lower, upper, y, alpha=0.10)
+
+    def test_no_warning_at_800(self, cvi_800):
+        cvi, _ = cvi_800
+        rng = np.random.default_rng(3)
+        n = 800
+        X = rng.normal(size=(n, 3))
+        y = rng.normal(size=n)
+        lower, upper = y - 2.0, y + 2.0
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            # Should not raise — exactly 800 samples is at the boundary
+            # (warning is for n < 800, not n <= 800)
+            cvi2 = ConditionalValidityIndex(n_splits=3, random_state=0)
+            cvi2.evaluate(X, lower, upper, y, alpha=0.10)
+
+    def test_result_still_returned_despite_warning(self, cvi_small):
+        cvi, X, lower, upper, y = cvi_small
+        with pytest.warns(UserWarning):
+            result = cvi.evaluate(X, lower, upper, y, alpha=0.10)
+        assert result is not None
+        assert result.cvi >= 0.0
+
+
+# ---------------------------------------------------------------------------
+# TestExpectedCalibrationError
+# ---------------------------------------------------------------------------
+
+
+class TestExpectedCalibrationError:
+    def test_requires_evaluate_first(self):
+        cvi = ConditionalValidityIndex(n_splits=3, random_state=0)
+        with pytest.raises(RuntimeError, match="evaluate"):
+            cvi.expected_calibration_error()
+
+    def test_ece_is_float(self, cvi_800):
+        cvi, _ = cvi_800
+        ece = cvi.expected_calibration_error()
+        assert isinstance(ece, float)
+
+    def test_ece_non_negative(self, cvi_800):
+        cvi, _ = cvi_800
+        ece = cvi.expected_calibration_error()
+        assert ece >= 0.0
+
+    def test_ece_at_most_one(self, cvi_800):
+        cvi, _ = cvi_800
+        ece = cvi.expected_calibration_error()
+        assert ece <= 1.0
+
+    def test_ece_default_10_bins(self, cvi_800):
+        """Default n_bins=10 should run without error."""
+        cvi, _ = cvi_800
+        ece = cvi.expected_calibration_error(n_bins=10)
+        assert np.isfinite(ece)
+
+    def test_ece_custom_n_bins(self, cvi_800):
+        cvi, _ = cvi_800
+        ece5 = cvi.expected_calibration_error(n_bins=5)
+        ece20 = cvi.expected_calibration_error(n_bins=20)
+        assert isinstance(ece5, float)
+        assert isinstance(ece20, float)
+
+    def test_ece_near_zero_for_well_covered(self):
+        """
+        When eta_hat is uniformly near the target, ECE should be small.
+        We fake a result by directly injecting eta_hat near 0.9 (target for alpha=0.1).
+        """
+        rng = np.random.default_rng(0)
+        n = 800
+        X = rng.normal(size=(n, 3))
+        y = rng.normal(loc=5.0, scale=1.5, size=n)
+        # Wide intervals — near-perfect coverage
+        lower = y - 10.0
+        upper = y + 10.0
+        cvi = ConditionalValidityIndex(n_splits=3, random_state=0)
+        cvi.evaluate(X, lower, upper, y, alpha=0.10)
+        ece = cvi.expected_calibration_error()
+        # All eta_hat should be near 1.0 (all covered); ECE measures deviation from 0.9
+        assert ece < 0.5, f"ECE for wide intervals was {ece:.4f}, expected < 0.5"
+
+
+# ---------------------------------------------------------------------------
+# TestPlotConditionalValidity
+# ---------------------------------------------------------------------------
+
+
+class TestPlotConditionalValidity:
+    def test_requires_evaluate_first(self):
+        cvi = ConditionalValidityIndex(n_splits=3, random_state=0)
+        with pytest.raises(RuntimeError, match="evaluate"):
+            cvi.plot_conditional_validity()
+
+    def test_returns_figure(self, cvi_800):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+
+        cvi, _ = cvi_800
+        fig = cvi.plot_conditional_validity()
+        assert fig is not None
+        # Should be a matplotlib Figure
+        assert hasattr(fig, "savefig"), "Expected matplotlib Figure with .savefig()"
+        plt.close(fig)
+
+    def test_figure_has_axes(self, cvi_800):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+
+        cvi, _ = cvi_800
+        fig = cvi.plot_conditional_validity()
+        assert len(fig.axes) >= 1
+        plt.close(fig)
+
+    def test_custom_n_bins_accepted(self, cvi_800):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+
+        cvi, _ = cvi_800
+        fig = cvi.plot_conditional_validity(n_bins=5)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_custom_figsize_accepted(self, cvi_800):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+
+        cvi, _ = cvi_800
+        fig = cvi.plot_conditional_validity(figsize=(6, 4))
+        assert fig is not None
+        plt.close(fig)
+
+    def test_ylabel_present(self, cvi_800):
+        pytest.importorskip("matplotlib")
+        import matplotlib.pyplot as plt
+
+        cvi, _ = cvi_800
+        fig = cvi.plot_conditional_validity()
+        ax = fig.axes[0]
+        assert ax.get_ylabel() != "", "Expected non-empty y-axis label"
+        plt.close(fig)
