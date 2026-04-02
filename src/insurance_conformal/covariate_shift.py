@@ -287,16 +287,25 @@ def _weighted_conformal_quantile(
     float
         Weighted quantile. May be inf.
     """
-    total = float(beta.sum()) + beta_test
+    beta_sum = float(beta.sum())
+    total = beta_sum + beta_test
     if total < 1e-12:
         return float(np.max(scores))
+
+    # The test point receives mass beta_test / total at +inf.
+    # If that mass alone exceeds alpha (i.e. beta_test/total > 1-alpha),
+    # the (1-alpha) quantile is +inf even if all calibration scores are included.
+    if beta_test / total > 1.0 - alpha:
+        return np.inf
 
     order = np.argsort(scores)
     sorted_scores = scores[order]
     sorted_beta = beta[order]
-    cummass = np.cumsum(sorted_beta) / total
+    # Normalise by beta_sum only: we are finding the quantile over finite scores.
+    # The mass at +inf has already been accounted for via the early-return above.
+    cummass = np.cumsum(sorted_beta) / beta_sum
 
-    idx = np.searchsorted(cummass, 1.0 - alpha)
+    idx = np.searchsorted(cummass, 1.0 - alpha, side="left")
     if idx >= len(sorted_scores):
         return np.inf
     return float(sorted_scores[idx])
@@ -601,7 +610,7 @@ class KMMConformalPredictor:
             if self.selective_threshold is not None:
                 tau = float(self.selective_threshold)
             else:
-                tau = float(np.percentile(support_scores, 10))
+                tau = float(np.percentile(support_scores, 5))
 
             self.support_mask_ = support_scores >= tau
             self.support_scores_ = support_scores
@@ -638,16 +647,24 @@ class KMMConformalPredictor:
 
         # Build KMM kernel matrices
         K_cc = _rbf_kernel(X_cal_fit, X_cal_fit, gamma)
-        K_cc += 1e-8 * np.eye(self.n_support_)  # numerical regularisation
+        K_cc += 1e-8 * np.eye(self.n_support_)  # base numerical regularisation
 
         K_ct_fit = _rbf_kernel(X_cal_fit, X_target_np, gamma)  # (n_support, m)
         kappa = (float(self.n_support_) / float(m)) * K_ct_fit.sum(axis=1)
 
-        # Check condition number of K_cc
+        # Check condition number of K_cc and add regularisation if needed.
+        # When regularisation delta*I is added to K_cc, the unconstrained optimum shifts
+        # from beta* = K^{-1} kappa to (K + delta*I)^{-1} kappa.  To keep the optimum
+        # at beta*=ones for the no-shift case (kappa ≈ K*ones), we compensate by also
+        # adding delta to kappa: (K + delta*I)*ones = K*ones + delta*ones = kappa + delta*ones.
         cond = np.linalg.cond(K_cc)
-        if cond > 1e10:
-            extra_reg = 1e-4 * np.trace(K_cc) / self.n_support_
+        if cond > 1e8:
+            # Use a regularisation level that makes the condition number manageable
+            # while preserving near-uniform weights for the no-shift case.
+            extra_reg = float(np.trace(K_cc)) / self.n_support_ * 0.1
             K_cc += extra_reg * np.eye(self.n_support_)
+            # Compensate kappa so the gradient at beta=ones stays near zero
+            kappa = kappa + extra_reg * np.ones(self.n_support_)
             warnings.warn(
                 f"K_cc condition number is {cond:.2e}, which may cause instability. "
                 "Added extra regularisation. Consider adjusting gamma.",

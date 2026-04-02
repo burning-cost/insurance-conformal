@@ -785,8 +785,10 @@ class LCPModelSelector:
                     else:
                         lo = yhats[i, k] - q_loo
                         hi = yhats[i, k] + q_loo
-                    loo_intervals[i, k, 0] = float(np.clip(lo, 0.0, None))
-                    loo_intervals[i, k, 1] = float(hi)
+                    lo_scalar = float(np.ravel(lo)[0])
+                    hi_scalar = float(np.ravel(hi)[0])
+                    loo_intervals[i, k, 0] = max(0.0, lo_scalar)
+                    loo_intervals[i, k, 1] = hi_scalar
 
         return loo_intervals
 
@@ -860,8 +862,8 @@ class LCPModelSelector:
                 lo = np.array([yhat[i] - q_loo])
                 hi = np.array([yhat[i] + q_loo])
 
-            intervals[i, 0] = float(np.clip(lo, 0.0, None))
-            intervals[i, 1] = float(hi)
+            intervals[i, 0] = max(0.0, float(lo[0]))
+            intervals[i, 1] = float(hi[0])
 
         return intervals
 
