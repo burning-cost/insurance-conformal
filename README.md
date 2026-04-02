@@ -291,13 +291,21 @@ Takes any fitted model — Tweedie GBM, GAM, GLM, or the output of [insurance-ga
 
 ## References
 
-- **Hong, L. (2025).** "Conformal prediction of future insurance claims in the regression problem." arXiv:2503.03659.
-- **Hong, L. (2026).** "A new strategy for finite-sample valid prediction of future insurance claims in the regression setting." arXiv:2601.21153.
-- **Graziadei, H., Janett, C., Embrechts, P. & Bucher, A. (2023).** "Conformal Prediction for Insurance Data." arXiv:2307.13124.
-- **Manna, S. et al. (2025).** "Conformal Prediction Inference in Regularized Insurance Models." Wiley ASMB; arXiv:2507.06921.
-- **Angelopoulos, A. N., Bates, S. et al. (2024).** "Conformal Risk Control." ICLR 2024. arXiv:2208.02814.
-- **Jun, J. & Ohn, I. (2025).** "Online Conformal Inference with Retrospective Adjustment." arXiv:2511.04275.
-- **Romano, Y., Patterson, E. & Candes, E. (2019).** "Conformalized Quantile Regression." NeurIPS 2019. arXiv:1905.03222.
+**Foundational theory**
+
+- **Vovk, V., Gammerman, A. & Shafer, G. (2005).** *Algorithmic Learning in a Random World.* Springer. (Foundational text establishing conformal prediction and coverage guarantees.)
+- **Lei, J., G'Sell, M., Rinaldo, A., Tibshirani, R.J. & Wasserman, L. (2018).** "Distribution-Free Predictive Inference for Regression." *Journal of the American Statistical Association*, 113(523), 1094–1111. [doi:10.1080/01621459.2017.1307116](https://doi.org/10.1080/01621459.2017.1307116)
+- **Angelopoulos, A.N. & Bates, S. (2023).** "A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification." *Foundations and Trends in Machine Learning*, 16(4). [arXiv:2107.07511](https://arxiv.org/abs/2107.07511)
+- **Romano, Y., Patterson, E. & Candes, E. (2019).** "Conformalized Quantile Regression." *NeurIPS 2019*. [arXiv:1905.03222](https://arxiv.org/abs/1905.03222)
+- **Tibshirani, R.J., Barber, R.F., Candes, E. & Ramdas, A. (2019).** "Conformal Prediction Under Covariate Shift." *NeurIPS 2019*. [arXiv:1904.06019](https://arxiv.org/abs/1904.06019)
+
+**Insurance-specific applications**
+
+- **Hong, L. (2025).** "Conformal prediction of future insurance claims in the regression problem." [arXiv:2503.03659](https://arxiv.org/abs/2503.03659)
+- **Hong, L. (2026).** "A new strategy for finite-sample valid prediction of future insurance claims in the regression setting." [arXiv:2601.21153](https://arxiv.org/abs/2601.21153)
+- **Graziadei, H., Janett, C., Embrechts, P. & Bucher, A. (2023).** "Conformal Prediction for Insurance Data." [arXiv:2307.13124](https://arxiv.org/abs/2307.13124)
+- **Angelopoulos, A.N., Bates, S. et al. (2024).** "Conformal Risk Control." *ICLR 2024*. [arXiv:2208.02814](https://arxiv.org/abs/2208.02814)
+- **Jun, J. & Ohn, I. (2025).** "Online Conformal Inference with Retrospective Adjustment." [arXiv:2511.04275](https://arxiv.org/abs/2511.04275)
 
 ---
 
