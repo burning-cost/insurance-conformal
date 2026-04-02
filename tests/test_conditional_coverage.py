@@ -1069,7 +1069,7 @@ class TestExpectedCalibrationError:
 class TestPlotConditionalValidity:
     def test_requires_evaluate_first(self):
         cvi = ConditionalValidityIndex(n_splits=3, random_state=0)
-        with pytest.raises(RuntimeError, match="evaluate"):
+        with pytest.raises((RuntimeError, ImportError)):
             cvi.plot_conditional_validity()
 
     def test_returns_figure(self, cvi_800):

@@ -1051,8 +1051,7 @@ class ConditionalValidityIndex:
         ax.set_ylabel("Coverage probability")
         ax.set_ylim(0.0, 1.05)
         ax.set_title(
-            f"Conditional validity plot
-"
+            f"Conditional validity plot\n"
             f"CVI={r.cvi:.4f} (U={r.cvi_u:.4f}, O={r.cvi_o:.4f}), n={n}"
         )
         ax.legend(fontsize=9)
