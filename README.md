@@ -1,6 +1,6 @@
 # insurance-conformal
 
-[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml) [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/insurance-conformal/) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/burning-cost/insurance-conformal/blob/main/LICENSE)
+[![Tests](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml/badge.svg)](https://github.com/burning-cost/insurance-conformal/actions/workflows/tests.yml) [![PyPI](https://img.shields.io/pypi/v/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Downloads](https://img.shields.io/pypi/dm/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![Python](https://img.shields.io/pypi/pyversions/insurance-conformal)](https://pypi.org/project/insurance-conformal/) [![License](https://img.shields.io/pypi/l/insurance-conformal)](https://pypi.org/project/insurance-conformal/)
 
 **Distribution-free prediction intervals for insurance pricing models — 13% narrower than parametric Tweedie, with a finite-sample coverage guarantee.**
 
@@ -431,3 +431,11 @@ Issues and pull requests welcome at [github.com/burning-cost/insurance-conformal
 ---
 
 Need help implementing this? [See our consulting services](https://burning-cost.github.io/work-with-us/).
+
+## Related Libraries
+
+| Library | Description |
+|---------|-------------|
+| [`insurance-monitoring`](https://github.com/burning-cost/insurance-monitoring) | Monitor coverage validity post-deployment — PSI and A/E ratios detect when conformal intervals become miscalibrated |
+| [`insurance-quantile`](https://github.com/burning-cost/insurance-quantile) | Quantile and TVaR regression — parametric complement to conformal prediction for tail risk |
+| [`insurance-cv`](https://github.com/burning-cost/insurance-cv) | Walk-forward cross-validation — use to generate proper conformal calibration sets on time-structured data |
