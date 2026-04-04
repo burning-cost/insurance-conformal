@@ -182,7 +182,8 @@ class TestCoverageLossEdgeCases:
         lower = np.array([0.5, 6.0, 2.0])
         upper = np.array([1.5, 7.0, 2.5])
         result = coverage_loss(y, lower, upper)
-        np.testing.assert_array_equal(result, [0.0, 1.0, 0.0])
+        # y=1.0 in [0.5,1.5] → covered (0), y=5.0 < 6.0 → miss (1), y=3.0 > 2.5 → miss (1)
+        np.testing.assert_array_equal(result, [0.0, 1.0, 1.0])
 
     def test_output_is_0_or_1(self):
         rng = np.random.default_rng(0)
