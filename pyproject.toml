@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "insurance-conformal"
-version = "1.3.1"
-description = "Distribution-free prediction intervals for insurance pricing models: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring"
+version = "1.3.2"
+description = "Distribution-free prediction intervals for insurance pricing: conformal coverage guarantees, Tweedie non-conformity scores, SCR bounds, and anytime-valid sequential monitoring."
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -15,6 +15,7 @@ keywords = [
     "conformal prediction",
     "insurance",
     "prediction intervals",
+    "uncertainty quantification",
     "tweedie",
     "gbm",
     "glm",
@@ -24,12 +25,20 @@ keywords = [
     "pricing",
     "SCR",
     "solvency",
+    "Solvency II",
     "conformal risk control",
     "coverage guarantee",
-    "sequential",
     "distribution-free",
+    "sequential monitoring",
+    "anytime-valid",
     "survival analysis",
     "censored data",
+    "model uncertainty",
+    "catboost",
+    "lightgbm",
+    "RAPS",
+    "split conformal",
+    "jackknife plus",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -40,6 +49,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Office/Business :: Financial",
 ]
@@ -73,11 +83,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://burning-cost.github.io/"
+Homepage = "https://burning-cost.github.io/libraries/insurance-conformal/"
+Documentation = "https://burning-cost.github.io/libraries/insurance-conformal/"
 Repository = "https://github.com/burning-cost/insurance-conformal"
-Changelog = "https://github.com/burning-cost/insurance-conformal/releases"
-Documentation = "https://burning-cost.github.io/insurance-conformal"
 "Bug Tracker" = "https://github.com/burning-cost/insurance-conformal/issues"
+Changelog = "https://github.com/burning-cost/insurance-conformal/releases"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/insurance_conformal"]
