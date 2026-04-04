@@ -45,7 +45,9 @@ def _make_typical_intervals(n: int = 500, alpha: float = 0.10, seed: int = 42) -
     """Generate realistic intervals with approximately correct coverage."""
     rng = np.random.default_rng(seed)
     y_true = rng.poisson(lam=2.0, size=n).astype(float)
-    y_pred = np.full(n, 2.0)
+    # Use varying predictions so coverage_by_decile can form non-degenerate bins.
+    # Constant predictions cause pd.qcut/cut to produce all-NaN labels.
+    y_pred = np.clip(y_true * rng.uniform(0.8, 1.2, size=n), 0.1, None)
     q = np.quantile(np.abs(y_true - y_pred), 1 - alpha)
     y_lower = np.maximum(0.0, y_pred - q)
     y_upper = y_pred + q

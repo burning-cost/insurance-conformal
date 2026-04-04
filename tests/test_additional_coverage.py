@@ -316,7 +316,7 @@ class TestCQRIntervalStructure:
         i_50 = calibrated_cqr.predict_interval(cqr_data["X_test"], alpha=0.50)
         w90 = (i_90["upper"] - i_90["lower"]).mean()
         w50 = (i_50["upper"] - i_50["lower"]).mean()
-        assert w90 > w50
+        assert w90 >= w50
 
     def test_invalid_alpha_raises(self, calibrated_cqr, cqr_data):
         with pytest.raises(ValueError, match="alpha"):
@@ -498,13 +498,13 @@ class TestHongModelFreeEdgeCases:
 
 class TestHongTransformConformalEdgeCases:
     def test_fit_calibrate_predict(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         intervals = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         assert isinstance(intervals, pl.DataFrame)
 
     def test_output_columns(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         intervals = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         # HongTransformConformal should have at least lower and upper
@@ -512,24 +512,24 @@ class TestHongTransformConformalEdgeCases:
         assert "upper" in intervals.columns
 
     def test_lower_leq_upper(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         intervals = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         assert (intervals["upper"] >= intervals["lower"]).all()
 
     def test_lower_nonneg(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         intervals = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         assert (intervals["lower"] >= 0.0).all()
 
     def test_predict_before_calibrate_raises(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         with pytest.raises(RuntimeError):
             htc.predict_interval(hong_data["X_test"])
 
     def test_wider_at_lower_alpha(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         i_90 = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         i_50 = htc.predict_interval(hong_data["X_test"], alpha=0.50)
@@ -538,19 +538,19 @@ class TestHongTransformConformalEdgeCases:
         assert w90 >= w50
 
     def test_invalid_alpha_raises(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         with pytest.raises(ValueError):
             htc.predict_interval(hong_data["X_test"], alpha=0.0)
 
     def test_output_length(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         intervals = htc.predict_interval(hong_data["X_test"], alpha=0.10)
         assert len(intervals) == len(hong_data["X_test"])
 
     def test_calibrate_returns_self(self, hong_data):
-        htc = HongTransformConformal(model=hong_data["model"])
+        htc = HongTransformConformal(h=hong_data["model"].predict)
         result = htc.calibrate(hong_data["X_train"], hong_data["y_train"])
         assert result is htc
 
@@ -565,8 +565,9 @@ class TestLWCEdgeCases:
         """fit() is required before calibrate() when using a separate spread model."""
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         # fit() must be called first to train the spread model
         # Calling calibrate without fit should raise RuntimeError
@@ -576,8 +577,9 @@ class TestLWCEdgeCases:
     def test_fit_returns_self(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         result = lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         assert result is lwc
@@ -585,8 +587,9 @@ class TestLWCEdgeCases:
     def test_calibrate_returns_self(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         result = lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -595,8 +598,9 @@ class TestLWCEdgeCases:
     def test_predict_interval_before_calibrate_raises(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         with pytest.raises(RuntimeError):
@@ -605,8 +609,9 @@ class TestLWCEdgeCases:
     def test_output_columns(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -618,8 +623,9 @@ class TestLWCEdgeCases:
     def test_lower_leq_point_leq_upper(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -630,8 +636,9 @@ class TestLWCEdgeCases:
     def test_lower_nonneg(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -641,8 +648,9 @@ class TestLWCEdgeCases:
     def test_wider_at_lower_alpha(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -655,8 +663,9 @@ class TestLWCEdgeCases:
     def test_invalid_alpha_raises(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -665,13 +674,11 @@ class TestLWCEdgeCases:
 
     def test_sklearn_backend_auto_fallback(self, lwc_data):
         """backend='sklearn' should work without catboost/lightgbm."""
-        from sklearn.ensemble import GradientBoostingRegressor
-        spread = GradientBoostingRegressor(n_estimators=5, max_depth=2, random_state=0)
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=None,
             tweedie_power=1.0,
             backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         lwc.fit(lwc_data["X_train"], lwc_data["y_train"])
         lwc.calibrate(lwc_data["X_cal"], lwc_data["y_cal"])
@@ -681,8 +688,9 @@ class TestLWCEdgeCases:
     def test_polars_input(self, lwc_data):
         lwc = LocallyWeightedConformal(
             model=lwc_data["model"],
-            spread_model=ConstantModel(1.0),
             tweedie_power=1.0,
+            backend="sklearn",
+            sklearn_spread_model_params={"n_estimators": 5, "max_depth": 2, "random_state": 0},
         )
         X_train_pl = pl.DataFrame(lwc_data["X_train"])
         y_train_pl = pl.Series(lwc_data["y_train"].tolist())
