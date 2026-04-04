@@ -35,7 +35,8 @@ def _make_zero_coverage_intervals(n: int = 200, seed: int = 1) -> dict:
     """Generate intervals that never cover the true value."""
     rng = np.random.default_rng(seed)
     y_true = rng.uniform(5.0, 10.0, size=n)
-    y_pred = np.ones(n) * 3.0
+    # Vary predictions so coverage_by_decile can form non-degenerate bins
+    y_pred = rng.uniform(2.0, 4.0, size=n)
     y_lower = np.zeros(n)
     y_upper = np.full(n, 1.0)  # always misses since y_true > 1
     return dict(y_true=y_true, y_lower=y_lower, y_upper=y_upper, y_pred=y_pred)
@@ -368,7 +369,7 @@ class TestCoverageByDecile:
         rng = np.random.default_rng(7)
         n = 400
         y_true = rng.poisson(2.0, n).astype(float)
-        y_pred = np.full(n, 2.0)
+        y_pred = np.clip(y_true * rng.uniform(0.8, 1.2, n), 0.1, None)
         y_lower = np.zeros(n)
         y_upper = np.full(n, 5.0)
         diag = CoverageDiagnostics(y_true=y_true, y_lower=y_lower, y_upper=y_upper, y_pred=y_pred, alpha=0.10)
