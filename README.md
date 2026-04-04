@@ -260,6 +260,65 @@ Distribution-free — holds regardless of the true data distribution or model mi
 
 ---
 
+
+---
+
+## Conditional Validity Index (CVI) assessment
+
+Marginal coverage is a necessary but insufficient guarantee for regulatory purposes. A conformal predictor covering 90% of the total book but only 82% of young drivers is a Consumer Duty exposure — the portfolio-level number obscures the segment-level failure.
+
+**CVI** makes this measurable. It trains a reliability estimator on calibration data to predict per-instance coverage probability from features. If coverage is uniform, no classifier should predict it from X — the signal will be noise. If it can, those predictions quantify the problem.
+
+CVI decomposes into:
+
+- **CVI_U** (safety): expected undercoverage shortfall for instances where the estimator predicts local coverage below (1-gamma)*(1-alpha). This is the dangerous component — false confidence.
+- **CVI_O** (efficiency): expected overcoverage excess. Premium capacity wasted on unnecessarily wide intervals.
+- **CVI = CVI_U + CVI_O**
+
+### Two implementations
+
+Both implement the same maths from Zhou et al. (arXiv:2603.27189). Choose based on your dependencies and workflow:
+
+**`ConditionalValidityIndex`** (in `conditional_coverage`): LightGBM backend, single `evaluate()` call, cross-validation inside the call. Requires `pip install insurance-conformal[lightgbm]`.
+
+**`ConditionalCoverageAssessor`** (in `assessment`): sklearn GradientBoostingClassifier — no optional dependencies. Separable `fit`/`score`/`select` API: train the reliability estimator once, then score multiple prediction sets without retraining.
+
+```python
+from insurance_conformal.assessment import ConditionalCoverageAssessor
+
+# Train the reliability estimator on your calibration data
+assessor = ConditionalCoverageAssessor(alpha=0.10, gamma=0.1)
+assessor.fit(X_cal, y_cal, (lower_cal, upper_cal))
+
+# Score a single predictor on the test set
+result = assessor.score(X_test, y_test, (lower_test, upper_test))
+print(result.cvi_u)     # undercoverage risk
+print(result.pi_minus)  # fraction of instances below coverage target
+
+# Select the best predictor from multiple candidates — one fit, K score calls
+sel = assessor.select(X_test, y_test, {
+    "pearson_weighted": (lo_pw, hi_pw),
+    "cqr": (lo_cqr, hi_cqr),
+    "locally_weighted": (lo_lw, hi_lw),
+})
+print(sel.best_key)
+print(sel.compare())  # polars DataFrame: predictors ranked by CVI
+```
+
+### Consumer Duty use case
+
+A pricing team runs three CQR variants (different quantile model depths) and needs to document which has the most uniform conditional coverage across policyholder segments before production deployment.
+
+The workflow:
+
+1. `assessor.fit(X_cal, y_cal, prediction_sets_cal)` — one classifier training run.
+2. `assessor.select(X_test, y_test, {"depth_4": ..., "depth_6": ..., "depth_8": ...})` — three forward passes, no refitting.
+3. `sel.compare()` gives a ranked Polars DataFrame; write `cvi_u` per predictor into the model governance pack.
+
+The `cvi_u` value is interpretable: among the policyholders where this predictor systematically under-performs, how large is the average coverage shortfall? A `cvi_u` of 0.03 means those policyholders are on average 3 percentage points below their 90% target. That is a number a pricing actuary can argue about in a model review; "the classifier's ERT is 0.023***" is not.
+
+**Based on:** Zhou, Z., Zhang, X., Tao, C. & Yang, Y. (2026). arXiv:2603.27189.
+
 ## Design choices
 
 **Split conformal, not cross-conformal.** Cross-conformal is more statistically efficient but requires refitting the model on each calibration fold. For GBMs that take hours to train, this is not practical. Split conformal trains once, calibrates once.

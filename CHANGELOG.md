@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.3.1] - 2026-04-04
+
+### Added
+- `ConditionalCoverageAssessor` in `insurance_conformal.assessment`: sklearn-native
+  CVI assessment with separable fit/score/select API. No LightGBM dependency required.
+  Implements the Conditional Validity Index from Zhou et al. (arXiv:2603.27189) using
+  `GradientBoostingClassifier` with isotonic probability calibration.
+
+  Key design difference from `ConditionalValidityIndex`: the reliability estimator is
+  trained once in `fit()` and reused across multiple `score()` calls. When comparing K
+  conformal predictors, this requires one classifier training run and K forward passes —
+  versus K*n_splits training runs in the cross-validation approach.
+
+  API:
+  - `fit(X_cal, y_cal, prediction_sets_cal)`: train reliability estimator.
+  - `score(X_test, y_test, prediction_sets_test)` -> `CVIAssessmentResult` with CVI,
+    CVI_U, CVI_O, pi_minus, pi_plus, CMU, CMO, marginal_coverage, eta_hat.
+  - `select(X_test, y_test, dict_of_prediction_sets)` -> `CVISelectResult` with
+    best_key, rankings, per-predictor scores, and a `compare()` Polars DataFrame.
+
+  Accepts prediction sets as (lower, upper) tuples, polars DataFrames, pandas
+  DataFrames, or dicts with "lower"/"upper" keys.
+
 ## [0.7.1] - 2026-03-31
 
 ### Added

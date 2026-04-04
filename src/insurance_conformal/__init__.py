@@ -154,6 +154,14 @@ v1.2.0 adds:
   anscombe, model selection between GLM and GBM, and portfolio mixture localisation.
   See LCPModelSelector, LocalScoreSelector.
 
+v1.3.1 adds:
+- ConditionalCoverageAssessor: CVI assessment with sklearn GradientBoostingClassifier.
+  No LightGBM dependency required. Separable fit/score/select API: fit() trains the
+  reliability estimator once on calibration data; score() applies it to any test set
+  in one forward pass; select() picks the best predictor from a dict of prediction
+  sets. Useful when comparing multiple conformal predictors — one fit(), K score()
+  calls. Based on Zhou et al. arXiv:2603.27189. See ConditionalCoverageAssessor.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
@@ -400,10 +408,19 @@ __all__ = [
     "SksurvCoxCensoringAdapter",
     "LCPModelSelector",
     "LocalScoreSelector",
+    # v1.3.1 additions
+    "ConditionalCoverageAssessor",
+    "CVIAssessmentResult",
+    "CVISelectResult",
 ]
 
 from insurance_conformal.covariate_shift import KMMConformalPredictor
 from insurance_conformal.lcp_model_selector import LCPModelSelector, LocalScoreSelector
+from insurance_conformal.assessment import (
+    ConditionalCoverageAssessor,
+    CVIAssessmentResult,
+    CVISelectResult,
+)
 
 from importlib.metadata import version, PackageNotFoundError
 
