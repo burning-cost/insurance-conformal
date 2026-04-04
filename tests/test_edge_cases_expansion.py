@@ -134,8 +134,8 @@ class TestRawScoreEdgeCases:
 
     def test_mismatched_shapes_raise(self):
         with pytest.raises(Exception):
-            # raw_score itself just subtracts; the shape mismatch propagates from numpy
-            raw_score(np.array([1.0, 2.0]), np.array([1.0]))
+            # Use shapes that cannot broadcast: (3,) vs (2,) raises ValueError
+            raw_score(np.array([1.0, 2.0, 3.0]), np.array([1.0, 2.0]))
 
     def test_large_values(self):
         y = np.array([1e6])
@@ -1138,8 +1138,7 @@ class TestWidthEfficiencyComparisonEdgeCases:
     def test_returns_polars_dataframe(self, two_predictors):
         cp1, cp2, X_test, y_test = two_predictors
         result = width_efficiency_comparison(
-            predictors=[cp1, cp2],
-            labels=["raw", "pearson_weighted"],
+            predictors={"raw": cp1, "pearson_weighted": cp2},
             X_test=X_test,
             y_test=y_test,
             alpha=0.10,
@@ -1149,21 +1148,19 @@ class TestWidthEfficiencyComparisonEdgeCases:
     def test_has_required_columns(self, two_predictors):
         cp1, cp2, X_test, y_test = two_predictors
         result = width_efficiency_comparison(
-            predictors=[cp1, cp2],
-            labels=["raw", "pearson_weighted"],
+            predictors={"raw": cp1, "pearson_weighted": cp2},
             X_test=X_test,
             y_test=y_test,
             alpha=0.10,
         )
-        assert "label" in result.columns
+        assert "predictor_name" in result.columns
         assert "mean_width" in result.columns
-        assert "coverage" in result.columns
+        assert "marginal_coverage" in result.columns
 
     def test_n_rows_equals_n_predictors(self, two_predictors):
         cp1, cp2, X_test, y_test = two_predictors
         result = width_efficiency_comparison(
-            predictors=[cp1, cp2],
-            labels=["A", "B"],
+            predictors={"A": cp1, "B": cp2},
             X_test=X_test,
             y_test=y_test,
             alpha=0.10,
@@ -1173,27 +1170,25 @@ class TestWidthEfficiencyComparisonEdgeCases:
     def test_coverage_in_unit_interval(self, two_predictors):
         cp1, cp2, X_test, y_test = two_predictors
         result = width_efficiency_comparison(
-            predictors=[cp1, cp2],
-            labels=["raw", "pw"],
+            predictors={"raw": cp1, "pw": cp2},
             X_test=X_test,
             y_test=y_test,
             alpha=0.10,
         )
-        assert (result["coverage"] >= 0.0).all()
-        assert (result["coverage"] <= 1.0).all()
+        assert (result["marginal_coverage"] >= 0.0).all()
+        assert (result["marginal_coverage"] <= 1.0).all()
 
     def test_pearson_weighted_narrower_than_raw(self, two_predictors):
         """pearson_weighted should produce narrower mean intervals than raw."""
         cp1, cp2, X_test, y_test = two_predictors
         result = width_efficiency_comparison(
-            predictors=[cp1, cp2],
-            labels=["raw", "pearson_weighted"],
+            predictors={"raw": cp1, "pearson_weighted": cp2},
             X_test=X_test,
             y_test=y_test,
             alpha=0.10,
         )
-        raw_row = result.filter(pl.col("label") == "raw")
-        pw_row = result.filter(pl.col("label") == "pearson_weighted")
+        raw_row = result.filter(pl.col("predictor_name") == "raw")
+        pw_row = result.filter(pl.col("predictor_name") == "pearson_weighted")
         assert pw_row["mean_width"][0] < raw_row["mean_width"][0]
 
 

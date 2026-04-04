@@ -192,7 +192,7 @@ class TestTweedieEdgeCases:
     def test_constant_model_all_scores(self, basic_data):
         """A constant model should still produce valid intervals for all score types."""
         for score in ("pearson", "deviance", "anscombe"):
-            model = ConstantModel(mu=1.5)
+            model = ConstantModel(1.5)
             tcp = TweedieConformPredictor(model=model, p=1.5, score=score)
             tcp.calibrate(basic_data["X_cal"], basic_data["y_cal"])
             intervals = tcp.predict_interval(basic_data["X_test"][:10], alpha=0.10)
@@ -381,7 +381,7 @@ class TestKMMEdgeCases:
         """X_target with very few samples relative to calibration triggers warning."""
         rng = np.random.default_rng(20)
         X_cal = rng.normal(size=(100, 3))
-        y_cal = np.abs(rng.normal(100)) + 0.5
+        y_cal = np.abs(rng.normal(size=100)) + 0.5
         # target has 2 samples — well below 5% of 100
         X_target = rng.normal(size=(2, 3))
         kcp = KMMConformalPredictor(model=ConstantModel(1.0))
@@ -395,7 +395,7 @@ class TestKMMEdgeCases:
     def test_alpha_near_zero_gives_wide_intervals(self):
         rng = np.random.default_rng(21)
         X_cal = rng.normal(size=(60, 3))
-        y_cal = np.abs(rng.normal(60)) + 0.5
+        y_cal = np.abs(rng.normal(size=60)) + 0.5
         X_target = rng.normal(size=(30, 3))
         kcp = KMMConformalPredictor(model=ConstantModel(1.0))
         kcp.calibrate(X_cal, y_cal, X_target)
@@ -409,7 +409,7 @@ class TestKMMEdgeCases:
         """weight_bound=1.0 disables upweighting. All weights <= 1.0."""
         rng = np.random.default_rng(22)
         X_cal = rng.normal(size=(80, 3))
-        y_cal = np.abs(rng.normal(80)) + 0.5
+        y_cal = np.abs(rng.normal(size=80)) + 0.5
         X_target = rng.normal(size=(40, 3)) + 2.0
         kcp = KMMConformalPredictor(model=ConstantModel(1.0), weight_bound=1.0)
         kcp.calibrate(X_cal, y_cal, X_target)
@@ -419,7 +419,7 @@ class TestKMMEdgeCases:
         """If selective threshold excludes all calibration points, raise ValueError."""
         rng = np.random.default_rng(23)
         X_cal = rng.normal(size=(60, 3))
-        y_cal = np.abs(rng.normal(60)) + 0.5
+        y_cal = np.abs(rng.normal(size=60)) + 0.5
         X_target = rng.normal(size=(30, 3)) + 100.0  # very far away
         kcp = KMMConformalPredictor(
             model=ConstantModel(1.0),
@@ -446,7 +446,7 @@ class TestKMMEdgeCases:
         """Each valid nonconformity option should calibrate without error."""
         rng = np.random.default_rng(24)
         X_cal = rng.normal(size=(60, 3))
-        y_cal = np.abs(rng.normal(60)) + 1.0
+        y_cal = np.abs(rng.normal(size=60)) + 1.0
         X_target = rng.normal(size=(30, 3))
         for nc in ("raw", "pearson", "pearson_weighted"):
             kcp = KMMConformalPredictor(
@@ -643,7 +643,7 @@ class TestLCPEdgeCases:
         rng = np.random.default_rng(50)
         n = 200
         X = rng.normal(size=(n, 3))
-        y = np.abs(rng.normal(n)) + 0.5
+        y = np.abs(rng.normal(size=n)) + 0.5
         model = ConstantModel(float(y.mean()))
         lcp = LCPModelSelector(
             models=[model],
@@ -664,7 +664,7 @@ class TestLCPEdgeCases:
         rng = np.random.default_rng(51)
         n = 100
         X = rng.normal(size=(n, 2))
-        y = np.abs(rng.normal(n)) + 0.5
+        y = np.abs(rng.normal(size=n)) + 0.5
         model = ConstantModel(1.0)
         lcp = LCPModelSelector(
             models=[model],
@@ -683,7 +683,7 @@ class TestLCPEdgeCases:
         rng = np.random.default_rng(52)
         n_cal = 10
         X_cal = rng.normal(size=(n_cal, 2))
-        y_cal = np.abs(rng.normal(n_cal)) + 0.5
+        y_cal = np.abs(rng.normal(size=n_cal)) + 0.5
         model = ConstantModel(1.0)
         lcp = LCPModelSelector(
             models=[model],
@@ -703,7 +703,7 @@ class TestLCPEdgeCases:
         rng = np.random.default_rng(53)
         n = 400
         X = rng.normal(size=(n, 3))
-        y = np.abs(rng.normal(n)) + 1.0
+        y = np.abs(rng.normal(size=n)) + 1.0
         # One good model, one bad model (predicts very wrong value)
         model_good = ConstantModel(float(y.mean()))
         model_bad = ConstantModel(100.0)  # extreme prediction -> huge intervals
@@ -735,7 +735,7 @@ class TestLCPEdgeCases:
         # n=1100 calibration points to trigger rank-update
         n_cal = 1100
         X_cal = rng.normal(size=(n_cal, 3))
-        y_cal = np.abs(rng.normal(n_cal)) + 0.5
+        y_cal = np.abs(rng.normal(size=n_cal)) + 0.5
         model = ConstantModel(float(y_cal.mean()))
         lcp = LCPModelSelector(
             models=[model],
@@ -1040,7 +1040,7 @@ class TestConditionalCoverageERTEdgeCases:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             result = ert.evaluate(X, y_lower, y_upper, y_true, alpha=0.10)
-        assert result.ert >= -1e-9  # ERT should not be negative
+        assert np.isfinite(result.ert)  # ERT can be negative when classifier is worse than baseline
 
     def test_ert_invalid_loss_raises(self):
         with pytest.raises(ValueError, match="loss"):
@@ -1069,10 +1069,15 @@ class TestWeightedConformalQuantileEdges:
         assert q == 3.14 or q == np.inf
 
     def test_alpha_near_one(self):
-        """alpha near 1 -> 1-alpha near 0 -> quantile is very small."""
+        """alpha near 1 -> 1-alpha near 0 -> quantile is very small.
+        
+        Use a tiny beta_test so it does not dominate the total mass and
+        cause the early-return at +inf (which happens when beta_test/total > 1-alpha).
+        """
         scores = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
         beta = np.ones(5)
-        q = _weighted_conformal_quantile(scores, beta, beta_test=1.0, alpha=0.99)
+        # beta_test=1e-6 << 1-alpha=0.01, so no early return to inf
+        q = _weighted_conformal_quantile(scores, beta, beta_test=1e-6, alpha=0.99)
         # 1-alpha=0.01 — very low requirement; cumulative mass >= 0.01 at the first score
         assert q <= 2.0 + 1e-9
 

@@ -419,7 +419,6 @@ class TestInternalState:
         assert perfect_diag._covered.all()
 
     def test_covered_all_false(self, zero_diag):
-        assert not perfect_diag._covered.all() or True  # sanity; don't fail on zero_diag
         assert not zero_diag._covered.any()
 
     def test_widths_nonnegative_for_valid_intervals(self, typical_diag):
