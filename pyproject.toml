@@ -95,3 +95,13 @@ packages = ["src/insurance_conformal"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--tb=short"
+filterwarnings = [
+    # sklearn/lightgbm interop: LGBMClassifier passes a numpy array to sklearn
+    # estimators that expect a DataFrame with feature names. Upstream issue.
+    "ignore:X does not have valid feature names:UserWarning",
+    # CVI reliability warnings fire legitimately on small test fixtures.
+    # These are expected — tests intentionally use small calibration sets
+    # to keep the suite fast. The warning logic is tested separately.
+    "ignore:CVI estimates may be unreliable:UserWarning",
+    "ignore:CVI estimates are more reliable:UserWarning",
+]
