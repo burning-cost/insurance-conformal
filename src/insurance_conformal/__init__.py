@@ -162,6 +162,20 @@ v1.3.1 adds:
   sets. Useful when comparing multiple conformal predictors — one fit(), K score()
   calls. Based on Zhou et al. arXiv:2603.27189. See ConditionalCoverageAssessor.
 
+
+v1.4.0 adds:
+- ReliabilityEstimator: standalone sklearn-compatible estimator for per-instance
+  coverage probability P(Y in C(X) | X). Accepts any sklearn binary classifier
+  (LogisticRegression by default). Can be used independently for segment-level
+  coverage audits, visualisation of conditional miscoverage, and FCA fairness
+  documentation. See insurance_conformal.cpa for ReliabilityEstimator.
+- CPASelector: CC-Select from pre-computed prediction intervals. Fits a
+  ReliabilityEstimator on calibration data once, then scores any number of
+  candidate prediction interval sets by CVI. Based on Zhou et al. arXiv:2603.27189.
+  The key difference from ConditionalCoverageAssessor: accepts any sklearn
+  classifier including logistic regression, and takes (lower, upper) arrays
+  directly rather than predictor objects. See CPASelector, CPAResult, CPASelectResult.
+
 Based on Manna et al. (2025), Hong (2025, 2026), arXiv 2507.06921,
 Angelopoulos et al. (2024) Conformal Risk Control (ICLR 2024, arXiv:2208.02814),
 Fan & Sesia (2025) arXiv:2512.15383, Jun & Ohn (2025) arXiv:2511.04275,
@@ -412,6 +426,11 @@ __all__ = [
     "ConditionalCoverageAssessor",
     "CVIAssessmentResult",
     "CVISelectResult",
+    # v1.4.0 additions
+    "ReliabilityEstimator",
+    "CPASelector",
+    "CPAResult",
+    "CPASelectResult",
 ]
 
 from insurance_conformal.covariate_shift import KMMConformalPredictor
@@ -420,6 +439,13 @@ from insurance_conformal.assessment import (
     ConditionalCoverageAssessor,
     CVIAssessmentResult,
     CVISelectResult,
+)
+
+from insurance_conformal.cpa import (
+    ReliabilityEstimator,
+    CPASelector,
+    CPAResult,
+    CPASelectResult,
 )
 
 from importlib.metadata import version, PackageNotFoundError
